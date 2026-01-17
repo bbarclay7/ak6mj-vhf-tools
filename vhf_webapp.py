@@ -184,7 +184,9 @@ def lookup_callsign(callsign):
     return None
 
 def geocode_address(address):
-    """Geocode an address using Nominatim (OpenStreetMap)"""
+    """Geocode an address using Nominatim (OSM) with Google Geocoding API as fallback"""
+
+    # Try Nominatim first (free, no API key required)
     url = "https://nominatim.openstreetmap.org/search"
     params = {
         'q': address,
@@ -201,14 +203,49 @@ def geocode_address(address):
             results = response.json()
             if results and len(results) > 0:
                 result = results[0]
+                print(f"Nominatim geocoded '{address}' -> {result['lat']}, {result['lon']}", flush=True)
                 return {
                     'lat': float(result['lat']),
                     'lon': float(result['lon']),
                     'name': result.get('display_name', address),
-                    'type': 'address'
+                    'type': 'address',
+                    'source': 'nominatim'
                 }
     except Exception as e:
-        print(f"Geocoding error for '{address}': {e}", flush=True)
+        print(f"Nominatim geocoding error for '{address}': {e}", flush=True)
+
+    # Fallback to Google Geocoding API (better street address coverage)
+    # Free tier: $200/month credit, 0.005/request = ~40,000 free requests/month
+    google_api_key = os.getenv('GOOGLE_GEOCODING_API_KEY')
+    if google_api_key:
+        try:
+            print(f"Trying Google Geocoding API for '{address}'...", flush=True)
+            url = "https://maps.googleapis.com/maps/api/geocode/json"
+            params = {
+                'address': address,
+                'key': google_api_key
+            }
+            response = requests.get(url, params=params, timeout=10)
+            if response.ok:
+                data = response.json()
+                if data.get('status') == 'OK' and data.get('results'):
+                    result = data['results'][0]
+                    location = result['geometry']['location']
+                    print(f"Google geocoded '{address}' -> {location['lat']}, {location['lng']}", flush=True)
+                    return {
+                        'lat': float(location['lat']),
+                        'lon': float(location['lng']),
+                        'name': result.get('formatted_address', address),
+                        'type': 'address',
+                        'source': 'google'
+                    }
+                else:
+                    print(f"Google geocoding failed: {data.get('status')}", flush=True)
+        except Exception as e:
+            print(f"Google geocoding error for '{address}': {e}", flush=True)
+    else:
+        print(f"No results from Nominatim and GOOGLE_GEOCODING_API_KEY not set", flush=True)
+
     return None
 
 def maidenhead_to_latlon(grid):

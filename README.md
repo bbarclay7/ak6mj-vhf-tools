@@ -52,7 +52,7 @@ Enter two locations (callsigns, grid squares, or coordinates) and the tool will:
 - **Grid Squares:** `CM98jq` → `CM98kq`
 - **Coordinates:** `38.6779,-121.1761` → `38.8894,-121.0156`
 
-**New:** Address geocoding powered by OpenStreetMap (Nominatim) - enter any address, city, or landmark!
+**Address Geocoding:** Powered by OpenStreetMap (Nominatim) with Google Geocoding API fallback for street-level addresses. Enter any address, city, or landmark!
 
 ## Built-in Node Aliases
 
@@ -64,6 +64,23 @@ Enter two locations (callsigns, grid squares, or coordinates) and the tool will:
 
 See `/Users/bb/work/srtm/VHF_PATH_ANALYSIS_README.md` for detailed usage guide.
 
+## Configuration
+
+### Google Geocoding API (Optional)
+
+For street-level address geocoding, you can optionally set up a Google Geocoding API key:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable the "Geocoding API"
+4. Create credentials (API Key)
+5. Set the environment variable:
+   ```bash
+   export GOOGLE_GEOCODING_API_KEY="your-api-key-here"
+   ```
+
+**Note:** Google offers $200/month free credit (~40,000 geocoding requests). Nominatim (OpenStreetMap) is always tried first and works for most cities/landmarks. Google is only used as a fallback for addresses not found by Nominatim.
+
 ## Deployment
 
 Hosted at www.shoeph.one using:
@@ -72,6 +89,7 @@ Hosted at www.shoeph.one using:
 - ProxyFix for reverse proxy
 - Systemd service management
 - Pre-cached SRTM data for CA/OR/WA
+- Google Geocoding API for street-level addresses
 
 ## Credits
 
