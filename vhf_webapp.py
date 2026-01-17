@@ -71,7 +71,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # Configure SRTM cache directory
 if SRTM_AVAILABLE:
-    SRTM_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    SRTM_DATA_DIR.mkdir(parents=True, exist_ok=True)
     # Set SRTM cache path via environment variable (srtm.py reads this)
     os.environ['SRTM1_DIR'] = str(SRTM_CACHE_DIR)
     os.environ['SRTM3_DIR'] = str(SRTM_CACHE_DIR)
@@ -115,7 +115,7 @@ def load_antennas():
 
 def save_antennas(antennas):
     """Save antennas to config file"""
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(ANTENNAS_FILE, 'w') as f:
         json.dump(antennas, f, indent=2)
 
@@ -132,7 +132,7 @@ def save_settings(settings):
         save_antennas(settings['antennas'])
     # Node aliases are now in settings file for backwards compat
     if 'node_aliases' in settings:
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
         with open(SETTINGS_FILE, 'w') as f:
             json.dump({'node_aliases': settings['node_aliases']}, f, indent=2)
 
@@ -148,7 +148,7 @@ def load_cache():
 
 def save_cache(cache):
     """Save location cache"""
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(CACHE_FILE, 'w') as f:
         json.dump(cache, f, indent=2)
 
