@@ -182,24 +182,50 @@ def lookup_callsign(callsign):
         pass
     return None
 
+def geocode_address(address):
+    """Geocode an address using Nominatim (OpenStreetMap)"""
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {
+        'q': address,
+        'format': 'json',
+        'limit': 1
+    }
+    headers = {
+        'User-Agent': 'VHF-Path-Analysis-AK6MJ/1.0 (Amateur Radio Tools)'
+    }
+
+    try:
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        if response.ok and response.json():
+            result = response.json()[0]
+            return {
+                'lat': float(result['lat']),
+                'lon': float(result['lon']),
+                'name': result.get('display_name', address),
+                'type': 'address'
+            }
+    except:
+        pass
+    return None
+
 def maidenhead_to_latlon(grid):
     """Convert grid square to lat/lon"""
     grid = grid.upper()
     if len(grid) < 4:
         raise ValueError("Grid too short")
-    
+
     lon = (ord(grid[0]) - ord('A')) * 20 - 180
     lat = (ord(grid[1]) - ord('A')) * 10 - 90
     lon += int(grid[2]) * 2
     lat += int(grid[3]) * 1
-    
+
     if len(grid) >= 6:
         lon += (ord(grid[4]) - ord('A')) * (2/24) + (1/24)
         lat += (ord(grid[5]) - ord('A')) * (1/24) + (1/48)
     else:
         lon += 1
         lat += 0.5
-    
+
     return lat, lon
 
 def parse_location(location_str, cache):
@@ -249,7 +275,15 @@ def parse_location(location_str, cache):
         cache[location_key] = loc
         save_cache(cache)
         return loc
-    
+
+    # Try geocoding as final fallback (for addresses, cities, landmarks)
+    loc = geocode_address(location_str)
+    if loc:
+        loc['label'] = location_str
+        cache[location_key] = loc
+        save_cache(cache)
+        return loc
+
     return None
 
 def haversine_distance(lat1, lon1, lat2, lon2):

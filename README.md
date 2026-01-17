@@ -46,9 +46,13 @@ Enter two locations (callsigns, grid squares, or coordinates) and the tool will:
 ### Example Inputs
 
 - **Callsigns:** `AK6MJ` → `KM6LYW`
+- **Addresses:** `Sacramento, CA` → `Mount Diablo, CA`
+- **Cities/Landmarks:** `Berryessa Peak` → `Cool, CA`
 - **Node Aliases:** `AK6MJ` → `KBERR` (Berryessa Peak digi)
 - **Grid Squares:** `CM98jq` → `CM98kq`
 - **Coordinates:** `38.6779,-121.1761` → `38.8894,-121.0156`
+
+**New:** Address geocoding powered by OpenStreetMap (Nominatim) - enter any address, city, or landmark!
 
 ## Built-in Node Aliases
 
