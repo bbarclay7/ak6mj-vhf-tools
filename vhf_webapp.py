@@ -71,7 +71,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # Configure SRTM cache directory
 if SRTM_AVAILABLE:
-    SRTM_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    SRTM_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     # Set SRTM cache path via environment variable (srtm.py reads this)
     os.environ['SRTM1_DIR'] = str(SRTM_CACHE_DIR)
     os.environ['SRTM3_DIR'] = str(SRTM_CACHE_DIR)
