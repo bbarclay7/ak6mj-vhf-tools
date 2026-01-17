@@ -28,6 +28,7 @@ import io
 import base64
 from pathlib import Path
 from datetime import datetime
+import requests
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
