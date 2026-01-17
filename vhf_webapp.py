@@ -196,16 +196,18 @@ def geocode_address(address):
 
     try:
         response = requests.get(url, params=params, headers=headers, timeout=10)
-        if response.ok and response.json():
-            result = response.json()[0]
-            return {
-                'lat': float(result['lat']),
-                'lon': float(result['lon']),
-                'name': result.get('display_name', address),
-                'type': 'address'
-            }
-    except:
-        pass
+        if response.ok:
+            results = response.json()
+            if results and len(results) > 0:
+                result = results[0]
+                return {
+                    'lat': float(result['lat']),
+                    'lon': float(result['lon']),
+                    'name': result.get('display_name', address),
+                    'type': 'address'
+                }
+    except Exception as e:
+        print(f"Geocoding error for '{address}': {e}", flush=True)
     return None
 
 def maidenhead_to_latlon(grid):
