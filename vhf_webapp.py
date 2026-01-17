@@ -79,12 +79,14 @@ if SRTM_AVAILABLE:
 
 # Node aliases
 NODE_ALIASES = {
-    'kberr': {'callsign': 'KE6YUV', 'name': 'Berryessa Peak Digipeater', 
+    'kberr': {'callsign': 'KE6YUV', 'name': 'Berryessa Peak Digipeater',
               'lat': 38.7833, 'lon': -122.1167, 'elevation': 914},  # 3000ft peak
     'kjohn': {'callsign': 'KF6ANX-4', 'name': 'Livermore Node',
               'lat': 37.6819, 'lon': -121.7681, 'elevation': 457},  # On Mt. Diablo area peak
     'cool': {'callsign': 'KM6LYW-4', 'name': 'Cool BBS Node',
              'lat': 38.8894, 'lon': -121.0156, 'elevation': None},  # Ground level
+    'waqth': {'callsign': 'AK6MJ', 'name': 'WA QTH - Freeland',
+              'lat': 48.0356948, 'lon': -122.5419147, 'elevation': None},  # Whidbey Island
 }
 
 # Default antenna definitions

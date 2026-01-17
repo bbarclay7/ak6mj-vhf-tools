@@ -59,6 +59,7 @@ Enter two locations (callsigns, grid squares, or coordinates) and the tool will:
 - `KBERR` - Berryessa Peak Digipeater (KE6YUV)
 - `KJOHN` - Livermore Node (KF6ANX-4)
 - `COOL` - Cool BBS Node (KM6LYW-4)
+- `WAQTH` - WA QTH - Freeland (AK6MJ)
 
 ## Documentation
 
