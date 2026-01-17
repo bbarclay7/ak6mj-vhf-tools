@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VHF Path Analysis Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .form-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 0.95em;
+        }
+        
+        input, select {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .hint {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+        
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+        
+        #results {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .result-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .result-header h3 {
+            color: #667eea;
+            font-size: 1.3em;
+        }
+        
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        .status-good {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-poor {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-bad {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .plot-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .plot-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .quick-examples {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .quick-examples h3 {
+            color: #004085;
+            margin-bottom: 15px;
+        }
+        
+        .example-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .example-btn {
+            padding: 8px 15px;
+            background: white;
+            border: 2px solid #004085;
+            color: #004085;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        
+        .example-btn:hover {
+            background: #004085;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 0;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+            
+            header {
+                padding: 20px 15px;
+            }
+            
+            header h1 {
+                font-size: 1.5em;
+            }
+            
+            header p {
+                font-size: 0.9em;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-section {
+                padding: 15px;
+            }
+            
+            .form-section h2 {
+                font-size: 1.2em;
+            }
+            
+            /* Fix location input buttons on mobile */
+            .form-group > div {
+                flex-direction: column;
+            }
+            
+            .form-group > div button {
+                width: 100%;
+                white-space: normal;
+                padding: 10px;
+            }
+            
+            /* Quick examples - stack on mobile */
+            .example-buttons {
+                flex-direction: column;
+            }
+            
+            .example-btn {
+                width: 100%;
+                text-align: center;
+            }
+            
+            /* Button group - stack vertically */
+            .button-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .button-group button {
+                width: 100%;
+            }
+            
+            /* Results grid - single column on mobile */
+            .stats-grid {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Settings button - smaller on mobile */
+            header button {
+                padding: 8px 12px !important;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📡 VHF Path Analysis Tool</h1>
+            <p>Analyze VHF radio paths with terrain data and link budget calculations</p>
+            <button onclick="openSettings()" style="position: absolute; top: 20px; right: 20px; padding: 10px 20px; background: rgba(255,255,255,0.2); border: 2px solid white; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                ⚙️ Settings
+            </button>
+        </header>
+        
+        <div class="content">
+            <div class="quick-examples">
+                <h3>Quick Examples</h3>
+                <div class="example-buttons">
+                    <button class="example-btn" onclick="loadExample('callsigns')">Callsign Lookup</button>
+                    <button class="example-btn" onclick="loadExample('nodes')">Packet Nodes</button>
+                    <button class="example-btn" onclick="loadExample('coords')">Coordinates</button>
+                    <button class="example-btn" onclick="loadExample('grid')">Grid Squares</button>
+                </div>
+            </div>
+            
+            <form id="analysisForm">
+                <div class="form-section">
+                    <h2>📍 Locations</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tx_location">TX Location</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="tx_location" name="tx_location" 
+                                       placeholder="AK6MJ, CM98jq, or 38.6779,-121.1761" required
+                                       style="flex: 1;">
+                                <button type="button" onclick="useMyLocation()" 
+                                        style="padding: 12px 20px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; white-space: nowrap;">
+                                    📍 Use My Location
+                                </button>
+                                <button type="button" onclick="snapTxToPeak()" 
+                                        style="padding: 12px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; white-space: nowrap;">
+                                    ⛰️ Snap to Peak
+                                </button>
+                            </div>
+                            <span class="hint">Callsign, grid square, or coordinates</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="rx_location">RX Location</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="rx_location" name="rx_location" 
+                                       placeholder="KM6LYW, KBERR, or CM98lv" required
+                                       style="flex: 1;">
+                                <button type="button" onclick="snapRxToPeak()" 
+                                        style="padding: 12px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; white-space: nowrap;">
+                                    ⛰️ Snap to Peak
+                                </button>
+                            </div>
+                            <span class="hint">Callsign, node alias, grid, or coordinates</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h2>📏 Antenna Configuration</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tx_height">TX Antenna Height (meters)</label>
+                            <input type="number" id="tx_height" name="tx_height" 
+                                   value="1.5" step="0.1" min="0.1" required>
+                            <span class="hint">Height above ground level</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="rx_height">RX Antenna Height (meters)</label>
+                            <input type="number" id="rx_height" name="rx_height" 
+                                   value="1.5" step="0.1" min="0.1" required>
+                            <span class="hint">Height above ground level</span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tx_antenna">TX Antenna Type</label>
+                            <select id="tx_antenna" name="tx_antenna">
+                                {% for key, antenna in antennas.items() %}
+                                <option value="{{ key }}">{{ antenna.name }} ({{ antenna.gain_dbi }} dBi)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="rx_antenna">RX Antenna Type</label>
+                            <select id="rx_antenna" name="rx_antenna">
+                                {% for key, antenna in antennas.items() %}
+                                <option value="{{ key }}">{{ antenna.name }} ({{ antenna.gain_dbi }} dBi)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h2>⚡ Radio Parameters</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tx_power">TX Power (Watts)</label>
+                            <input type="number" id="tx_power" name="tx_power" 
+                                   value="5" step="0.1" min="0.1" required>
+                            <span class="hint">Transmit power output</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="freq">Frequency (MHz)</label>
+                            <input type="number" id="freq" name="freq" 
+                                   value="145.050" step="0.001" min="1" required>
+                            <span class="hint">Operating frequency</span>
+                        </div>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="imperial" name="imperial" checked>
+                        <label for="imperial">Use Imperial Units (miles, feet)</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="generate_plot" name="generate_plot" checked>
+                        <label for="generate_plot">Generate Elevation Profile (requires terrain data)</label>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button type="submit" class="btn-primary">🔍 Analyze Path</button>
+                    <button type="button" class="btn-secondary" onclick="resetForm()">🔄 Reset</button>
+                    <button type="button" class="btn-secondary" onclick="shareAsGist()" id="shareBtn" style="display:none;">📤 Share as Gist</button>
+                </div>
+            </form>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing path and fetching terrain data...</p>
+            </div>
+            
+            <div id="error" class="error" style="display: none;"></div>
+            
+            <div id="results">
+                <div class="result-card">
+                    <div class="result-header">
+                        <h3>📊 Path Analysis Results</h3>
+                        <span class="status-badge" id="status-badge"></span>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">Distance</div>
+                            <div class="stat-value" id="distance"></div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Path Loss (FSPL)</div>
+                            <div class="stat-value" id="fspl"></div>
+                        </div>
+                        <div class="stat-box" id="diffraction-box" style="display: none;">
+                            <div class="stat-label">Obstruction Loss</div>
+                            <div class="stat-value" id="diffraction-loss" style="color: #dc3545;"></div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">RX Power</div>
+                            <div class="stat-value" id="rx-power"></div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Fade Margin</div>
+                            <div class="stat-value" id="fade-margin"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="obstruction-note" style="margin-top: 15px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; display: none;">
+                        <strong>⚠ Terrain Note:</strong> <span id="obstruction-text"></span>
+                    </div>
+                    
+                    <div id="location-details" style="margin-top: 20px;"></div>
+                </div>
+                
+                <div id="plot-container" class="plot-container" style="display: none;">
+                    <h3 style="margin-bottom: 15px;">Elevation Profile</h3>
+                    <img id="plot-image" src="" alt="Elevation Profile">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div id="settingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+        <div style="max-width: 800px; margin: 50px auto; background: white; border-radius: 10px; padding: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h2 style="color: #667eea; margin: 0;">⚙️ Settings</h2>
+                <button onclick="closeSettings()" style="padding: 10px 20px; background: #e9ecef; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Close</button>
+            </div>
+            
+            <div class="form-section">
+                <h3 style="color: #667eea; margin-bottom: 15px;">📍 Custom Node Aliases</h3>
+                <p style="color: #666; margin-bottom: 15px;">Add shortcuts for frequently used locations (digipeaters, repeaters, club stations)</p>
+                
+                <div id="nodesList" style="margin-bottom: 20px;"></div>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <h4 style="margin-bottom: 15px;">Add New Node</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <input type="text" id="newNodeAlias" placeholder="Alias (e.g., kberr)" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                        <input type="text" id="newNodeCallsign" placeholder="Callsign (e.g., KE6YUV)" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <input type="text" id="newNodeName" placeholder="Name" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                        <input type="number" id="newNodeLat" placeholder="Latitude" step="0.0001" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                        <input type="number" id="newNodeLon" placeholder="Longitude" step="0.0001" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                    </div>
+                    <button onclick="addNode()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%;">
+                        ➕ Add Node
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-section" style="margin-top: 20px;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">🗺️ Custom Locations</h3>
+                <p style="color: #666; margin-bottom: 15px;">Save frequently used locations with friendly names</p>
+                
+                <div id="customLocationsList" style="margin-bottom: 20px;"></div>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <h4 style="margin-bottom: 15px;">Add New Location</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px; margin-bottom: 15px;">
+                        <input type="text" id="newLocAlias" placeholder="Alias (e.g., home)" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                        <input type="text" id="newLocLabel" placeholder="Label (e.g., My QTH)" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600; margin-bottom: 10px; display: block;">Choose location method:</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                            <button type="button" onclick="useCurrentLocationForSave()" style="padding: 10px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                                📍 Use Current Location
+                            </button>
+                            <button type="button" onclick="lookupCallsignForSave()" style="padding: 10px; background: #17a2b8; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                                🔍 Lookup Callsign
+                            </button>
+                            <button type="button" onclick="snapToPeak()" style="padding: 10px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                                ⛰️ Snap to Peak
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <input type="text" id="newLocCallsign" placeholder="Callsign (optional)" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                        <input type="text" id="newLocGrid" placeholder="Grid (e.g., CM98jq)" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                        <span></span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <input type="number" id="newLocLat" placeholder="Latitude" step="0.0001" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                        <input type="number" id="newLocLon" placeholder="Longitude" step="0.0001" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                    </div>
+                    
+                    <button onclick="addCustomLocation()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%;">
+                        ➕ Add Location
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-section" style="margin-top: 20px;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">📡 Custom Antennas</h3>
+                <p style="color: #666; margin-bottom: 15px;">Add your own antenna types with gain specifications</p>
+                
+                <div id="antennasList" style="margin-bottom: 20px;"></div>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <h4 style="margin-bottom: 15px;">Add New Antenna</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <input type="text" id="newAntennaKey" placeholder="Key (e.g., my_yagi)" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                        <input type="text" id="newAntennaName" placeholder="Name (e.g., My 10-el Yagi)" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                        <input type="number" id="newAntennaGain" placeholder="Gain (dBi)" step="0.1" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                    </div>
+                    <button onclick="addAntenna()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%;">
+                        ➕ Add Antenna
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-section" style="margin-top: 20px;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">🔐 GitHub Integration</h3>
+                <p style="color: #666; margin-bottom: 15px;">Manage GitHub authentication for sharing reports as Gists</p>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <p style="margin-bottom: 15px;"><strong>Status:</strong> <span id="githubStatus">Not configured</span></p>
+                    <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">
+                        To share analyses as GitHub Gists, you need a Personal Access Token with "gist" scope.
+                        <a href="https://github.com/settings/tokens/new?scopes=gist&description=VHF%20Path%20Analysis" target="_blank" style="color: #667eea;">Create token →</a>
+                    </p>
+                    <button onclick="clearGitHubToken()" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        🗑️ Clear GitHub Token
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Update GitHub status on settings open
+        function updateGitHubStatus() {
+            const token = localStorage.getItem('github_token');
+            const status = document.getElementById('githubStatus');
+            if (token) {
+                status.textContent = '✓ Token configured';
+                status.style.color = 'green';
+            } else {
+                status.textContent = 'Not configured';
+                status.style.color = '#666';
+            }
+        }
+        
+        // Geolocation for mobile/field ops
+        function useMyLocation() {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser');
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude.toFixed(4);
+                    const lon = position.coords.longitude.toFixed(4);
+                    document.getElementById('tx_location').value = `${lat},${lon}`;
+                },
+                (error) => {
+                    alert('Unable to get location: ' + error.message);
+                }
+            );
+        }
+        
+        async function snapTxToPeak() {
+            await snapLocationToPeak('tx_location');
+        }
+        
+        async function snapRxToPeak() {
+            await snapLocationToPeak('rx_location');
+        }
+        
+        async function snapLocationToPeak(fieldId) {
+            const location = document.getElementById(fieldId).value.trim();
+            if (!location) {
+                alert('Please enter a location first');
+                return;
+            }
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '🔄 Resolving...';
+            btn.disabled = true;
+            
+            try {
+                // First, resolve the location to get coordinates
+                let lat, lon;
+                
+                // Check if it's already coordinates
+                const coordMatch = location.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+                if (coordMatch) {
+                    lat = parseFloat(coordMatch[1]);
+                    lon = parseFloat(coordMatch[2]);
+                } else {
+                    // Use dedicated resolve endpoint
+                    const resolveResponse = await fetch('/api/resolve-location', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({location: location})
+                    });
+                    
+                    const resolveData = await resolveResponse.json();
+                    if (!resolveData.success || !resolveData.location) {
+                        alert('Could not resolve location: ' + location + '\n' + (resolveData.error || 'Unknown error'));
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                        return;
+                    }
+                    
+                    lat = resolveData.location.lat;
+                    lon = resolveData.location.lon;
+                }
+                
+                // Now snap to peak
+                btn.textContent = '🔄 Finding peak...';
+                
+                const response = await fetch('/api/snap-to-peak', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({lat, lon, radius: 500})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const newLat = data.peak.lat.toFixed(4);
+                    const newLon = data.peak.lon.toFixed(4);
+                    document.getElementById(fieldId).value = `${newLat},${newLon}`;
+                    
+                    const movedDist = data.moved_distance;
+                    if (movedDist > 10) {
+                        alert(`Snapped "${location}" to peak ${movedDist.toFixed(0)}m away\nNew location: ${newLat},${newLon}\nElevation: ${data.peak.elevation}m`);
+                    } else {
+                        alert(`"${location}" is already at/near peak\nCoordinates: ${newLat},${newLon}\nElevation: ${data.peak.elevation}m`);
+                    }
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error finding peak: ' + error.message);
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+        
+        
+        // Settings modal
+        function openSettings() {
+            document.getElementById('settingsModal').style.display = 'block';
+            loadSettings();
+            updateGitHubStatus();
+        }
+        
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+            // Reload page to refresh dropdowns with new settings
+            location.reload();
+        }
+        
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+                
+                // Display nodes
+                const nodesList = document.getElementById('nodesList');
+                nodesList.innerHTML = '';
+                const nodes = settings.node_aliases || {};
+                
+                for (const [alias, info] of Object.entries(nodes)) {
+                    const nodeDiv = document.createElement('div');
+                    nodeDiv.style.cssText = 'background: white; padding: 15px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;';
+                    nodeDiv.innerHTML = `
+                        <div>
+                            <strong>${alias.toUpperCase()}</strong> - ${info.name || 'N/A'}<br>
+                            <small style="color: #666;">${info.callsign || 'N/A'} | ${info.lat}, ${info.lon}</small>
+                        </div>
+                        <button onclick="deleteNode('${alias}')" style="padding: 8px 15px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                            🗑️ Delete
+                        </button>
+                    `;
+                    nodesList.appendChild(nodeDiv);
+                }
+                
+                // Load custom locations
+                const locResponse = await fetch('/api/custom-locations');
+                const customLocs = await locResponse.json();
+                const customLocationsList = document.getElementById('customLocationsList');
+                customLocationsList.innerHTML = '';
+                
+                for (const [alias, info] of Object.entries(customLocs)) {
+                    const locDiv = document.createElement('div');
+                    locDiv.style.cssText = 'background: white; padding: 15px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;';
+                    locDiv.innerHTML = `
+                        <div>
+                            <strong>${alias.toUpperCase()}</strong> - ${info.label || 'N/A'}<br>
+                            <small style="color: #666;">${info.lat.toFixed(4)}, ${info.lon.toFixed(4)} ${info.grid ? '| Grid: ' + info.grid : ''}</small>
+                        </div>
+                        <button onclick="deleteCustomLocation('${alias}')" style="padding: 8px 15px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                            🗑️ Delete
+                        </button>
+                    `;
+                    customLocationsList.appendChild(locDiv);
+                }
+                
+                // Display antennas
+                const antResponse = await fetch('/api/antennas');
+                const antennas = await antResponse.json();
+                const antennasList = document.getElementById('antennasList');
+                antennasList.innerHTML = '';
+                
+                for (const [key, info] of Object.entries(antennas)) {
+                    const antennaDiv = document.createElement('div');
+                    antennaDiv.style.cssText = 'background: white; padding: 15px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;';
+                    antennaDiv.innerHTML = `
+                        <div>
+                            <strong>${info.name}</strong><br>
+                            <small style="color: #666;">Gain: ${info.gain_dbi} dBi</small>
+                        </div>
+                        <button onclick="deleteAntenna('${key}')" style="padding: 8px 15px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                            🗑️ Delete
+                        </button>
+                    `;
+                    antennasList.appendChild(antennaDiv);
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+        
+        function useCurrentLocationForSave() {
+            if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    document.getElementById('newLocLat').value = pos.coords.latitude.toFixed(4);
+                    document.getElementById('newLocLon').value = pos.coords.longitude.toFixed(4);
+                    alert('Location set! (You can still adjust if needed)');
+                },
+                (err) => { alert('Unable to get location: ' + err.message); }
+            );
+        }
+        
+        async function lookupCallsignForSave() {
+            const callsign = document.getElementById('newLocCallsign').value.trim();
+            if (!callsign) {
+                alert('Please enter a callsign first');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`https://callook.info/${callsign}/json`);
+                const data = await response.json();
+                
+                if (data.status === 'VALID') {
+                    const loc = data.location;
+                    document.getElementById('newLocLat').value = loc.latitude;
+                    document.getElementById('newLocLon').value = loc.longitude;
+                    document.getElementById('newLocGrid').value = loc.gridsquare || '';
+                    if (!document.getElementById('newLocLabel').value) {
+                        document.getElementById('newLocLabel').value = data.name || callsign;
+                    }
+                    alert('Callsign looked up successfully!');
+                } else {
+                    alert('Callsign not found');
+                }
+            } catch (error) {
+                alert('Error looking up callsign: ' + error.message);
+            }
+        }
+        
+        async function snapToPeak() {
+            const lat = parseFloat(document.getElementById('newLocLat').value);
+            const lon = parseFloat(document.getElementById('newLocLon').value);
+            
+            if (isNaN(lat) || isNaN(lon)) {
+                alert('Please enter coordinates first (or use GPS/Callsign lookup)');
+                return;
+            }
+            
+            const btn = event.target;
+            btn.textContent = '🔄 Finding peak...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/snap-to-peak', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({lat, lon, radius: 500})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('newLocLat').value = data.peak.lat.toFixed(4);
+                    document.getElementById('newLocLon').value = data.peak.lon.toFixed(4);
+                    
+                    const movedDist = data.moved_distance;
+                    if (movedDist > 10) {
+                        alert(`Snapped to peak ${movedDist.toFixed(0)}m away\nElevation: ${data.peak.elevation}m`);
+                    } else {
+                        alert(`Already at peak (${data.peak.elevation}m)`);
+                    }
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error finding peak: ' + error.message);
+            } finally {
+                btn.textContent = '⛰️ Snap to Peak';
+                btn.disabled = false;
+            }
+        }
+        
+        
+        async function addCustomLocation() {
+            const alias = document.getElementById('newLocAlias').value.trim();
+            const label = document.getElementById('newLocLabel').value.trim();
+            let lat = document.getElementById('newLocLat').value;
+            let lon = document.getElementById('newLocLon').value;
+            const grid = document.getElementById('newLocGrid').value.trim();
+            
+            // If grid is provided but no lat/lon, convert grid to lat/lon
+            if (grid && (!lat || !lon)) {
+                // Simple grid to lat/lon conversion
+                try {
+                    const g = grid.toUpperCase();
+                    lon = (g.charCodeAt(0) - 65) * 20 - 180;
+                    lat = (g.charCodeAt(1) - 65) * 10 - 90;
+                    lon += parseInt(g[2]) * 2;
+                    lat += parseInt(g[3]) * 1;
+                    if (g.length >= 6) {
+                        lon += (g.charCodeAt(4) - 65) * (2/24) + (1/24);
+                        lat += (g.charCodeAt(5) - 65) * (1/24) + (1/48);
+                    } else {
+                        lon += 1;
+                        lat += 0.5;
+                    }
+                    document.getElementById('newLocLat').value = lat;
+                    document.getElementById('newLocLon').value = lon;
+                } catch (e) {
+                    alert('Invalid grid square');
+                    return;
+                }
+            }
+            
+            lat = parseFloat(lat);
+            lon = parseFloat(lon);
+            
+            if (!alias || isNaN(lat) || isNaN(lon)) {
+                alert('Please provide alias and coordinates (or grid square)');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/custom-locations', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({alias, label, lat, lon, grid})
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    // Clear inputs
+                    document.getElementById('newLocAlias').value = '';
+                    document.getElementById('newLocLabel').value = '';
+                    document.getElementById('newLocCallsign').value = '';
+                    document.getElementById('newLocGrid').value = '';
+                    document.getElementById('newLocLat').value = '';
+                    document.getElementById('newLocLon').value = '';
+                    loadSettings();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error adding location: ' + error.message);
+            }
+        }
+        
+        async function deleteCustomLocation(alias) {
+            if (!confirm(`Delete location "${alias}"?`)) return;
+            
+            try {
+                const response = await fetch(`/api/custom-locations/${alias}`, {method: 'DELETE'});
+                const data = await response.json();
+                if (data.success) {
+                    loadSettings();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error deleting location: ' + error.message);
+            }
+        }
+        
+        
+        async function addNode() {
+            const alias = document.getElementById('newNodeAlias').value.trim();
+            const callsign = document.getElementById('newNodeCallsign').value.trim();
+            const name = document.getElementById('newNodeName').value.trim();
+            const lat = parseFloat(document.getElementById('newNodeLat').value);
+            const lon = parseFloat(document.getElementById('newNodeLon').value);
+            
+            if (!alias || isNaN(lat) || isNaN(lon)) {
+                alert('Please fill in alias, latitude, and longitude');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/nodes', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({alias, callsign, name, lat, lon})
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    // Clear inputs
+                    document.getElementById('newNodeAlias').value = '';
+                    document.getElementById('newNodeCallsign').value = '';
+                    document.getElementById('newNodeName').value = '';
+                    document.getElementById('newNodeLat').value = '';
+                    document.getElementById('newNodeLon').value = '';
+                    // Reload settings
+                    loadSettings();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error adding node: ' + error.message);
+            }
+        }
+        
+        async function deleteNode(alias) {
+            if (!confirm(`Delete node alias "${alias}"?`)) return;
+            
+            try {
+                const response = await fetch(`/api/nodes/${alias}`, {method: 'DELETE'});
+                const data = await response.json();
+                if (data.success) {
+                    loadSettings();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error deleting node: ' + error.message);
+            }
+        }
+        
+        async function addAntenna() {
+            const key = document.getElementById('newAntennaKey').value.trim();
+            const name = document.getElementById('newAntennaName').value.trim();
+            const gain_dbi = parseFloat(document.getElementById('newAntennaGain').value);
+            
+            if (!key || !name || isNaN(gain_dbi)) {
+                alert('Please fill in all antenna fields');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/antennas', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({key, name, gain_dbi})
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    // Clear inputs
+                    document.getElementById('newAntennaKey').value = '';
+                    document.getElementById('newAntennaName').value = '';
+                    document.getElementById('newAntennaGain').value = '';
+                    // Reload settings
+                    loadSettings();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error adding antenna: ' + error.message);
+            }
+        }
+        
+        async function deleteAntenna(key) {
+            if (!confirm(`Delete antenna "${key}"?`)) return;
+            
+            try {
+                const response = await fetch(`/api/antennas/${key}`, {method: 'DELETE'});
+                const data = await response.json();
+                if (data.success) {
+                    loadSettings();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error deleting antenna: ' + error.message);
+            }
+        }
+        
+        function loadExample(type) {
+            const examples = {
+                'callsigns': {
+                    tx_location: 'AK6MJ',
+                    rx_location: 'KM6LYW',
+                    tx_height: 8.8,
+                    rx_height: 10
+                },
+                'nodes': {
+                    tx_location: 'AK6MJ',
+                    rx_location: 'KBERR',
+                    tx_height: 3,
+                    rx_height: 10
+                },
+                'coords': {
+                    tx_location: '38.6779,-121.1761',
+                    rx_location: '38.8894,-121.0156',
+                    tx_height: 5,
+                    rx_height: 3
+                },
+                'grid': {
+                    tx_location: 'CM98jq',
+                    rx_location: 'CM98kq',
+                    tx_height: 1.5,
+                    rx_height: 1.5
+                }
+            };
+            
+            const example = examples[type];
+            if (example) {
+                document.getElementById('tx_location').value = example.tx_location;
+                document.getElementById('rx_location').value = example.rx_location;
+                document.getElementById('tx_height').value = example.tx_height;
+                document.getElementById('rx_height').value = example.rx_height;
+            }
+        }
+        
+        function resetForm() {
+            document.getElementById('analysisForm').reset();
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('shareBtn').style.display = 'none';
+            currentAnalysisResults = null;
+        }
+        
+        async function shareAsGist() {
+            if (!currentAnalysisResults) {
+                alert('No analysis results to share');
+                return;
+            }
+            
+            // Check if we have a GitHub token
+            let token = localStorage.getItem('github_token');
+            
+            if (!token) {
+                // Prompt user for personal access token
+                const instructions = `To share as a GitHub Gist, you need a Personal Access Token.\n\n` +
+                    `Steps:\n` +
+                    `1. Go to GitHub → Settings → Developer Settings → Personal Access Tokens → Tokens (classic)\n` +
+                    `2. Click "Generate new token (classic)"\n` +
+                    `3. Name it "VHF Path Analysis"\n` +
+                    `4. Check ONLY the "gist" scope\n` +
+                    `5. Generate and copy the token\n\n` +
+                    `The token will be stored locally in your browser.`;
+                
+                alert(instructions);
+                
+                token = prompt('Paste your GitHub Personal Access Token:\n(It will be stored locally in your browser)');
+                
+                if (!token) {
+                    return;
+                }
+                
+                // Save token
+                localStorage.setItem('github_token', token);
+            }
+            
+            const btn = document.getElementById('shareBtn');
+            btn.textContent = '📤 Creating Gist...';
+            btn.disabled = true;
+            
+            try {
+                const fd = currentAnalysisResults.formData;
+                const res = currentAnalysisResults.results;
+                const link = res.link_budget;
+                
+                // Build HTML report with embedded image
+                let html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VHF Path Analysis: ${fd.tx_location} to ${fd.rx_location}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #667eea;
+            margin-top: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 5px;
+        }
+        h3 {
+            color: #495057;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        .info-value {
+            color: #212529;
+        }
+        .status-viable {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .status-not-viable {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .methodology {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin-top: 30px;
+        }
+        code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📡 VHF Path Analysis Report</h1>
+        <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+        
+        <h2>Path Configuration</h2>
+        <div class="info-grid">
+            <div class="info-label">TX Location:</div>
+            <div class="info-value">${fd.tx_location}</div>
+            <div class="info-label">RX Location:</div>
+            <div class="info-value">${fd.rx_location}</div>
+            <div class="info-label">Distance:</div>
+            <div class="info-value">${res.distance.toFixed(2)} ${res.distance_unit}</div>
+            <div class="info-label">Frequency:</div>
+            <div class="info-value">${fd.freq} MHz</div>
+        </div>
+        
+        <h2>Antenna Configuration</h2>
+        <div class="info-grid">
+            <div class="info-label">TX Antenna:</div>
+            <div class="info-value">${fd.tx_antenna} at ${fd.tx_height}m AGL</div>
+            <div class="info-label">RX Antenna:</div>
+            <div class="info-value">${fd.rx_antenna} at ${fd.rx_height}m AGL</div>
+            <div class="info-label">TX Power:</div>
+            <div class="info-value">${fd.tx_power}W</div>
+        </div>
+        
+        <h2>Link Budget Results</h2>
+        <div class="info-grid">
+            <div class="info-label">Free Space Path Loss:</div>
+            <div class="info-value">${link.fspl_db.toFixed(1)} dB</div>
+            <div class="info-label">RX Power:</div>
+            <div class="info-value">${link.rx_power_dbm.toFixed(1)} dBm</div>
+            <div class="info-label">Fade Margin:</div>
+            <div class="info-value">${link.fade_margin_db.toFixed(1)} dB</div>`;
+            
+                if (link.diffraction_loss_db) {
+                    html += `
+            <div class="info-label">Diffraction Loss:</div>
+            <div class="info-value">${link.diffraction_loss_db.toFixed(1)} dB</div>`;
+                }
+                if (link.obstruction_note) {
+                    html += `
+            <div class="info-label">Terrain:</div>
+            <div class="info-value">${link.obstruction_note}</div>`;
+                }
+                
+                html += `
+            <div class="info-label">Link Viable:</div>
+            <div class="info-value ${link.viable ? 'status-viable' : 'status-not-viable'}">${link.viable ? 'Yes ✓' : 'No ✗'}</div>
+        </div>`;
+                
+                if (res.plot) {
+                    html += `
+        <h2>Elevation Profile</h2>
+        <img src="data:image/png;base64,${res.plot}" alt="Elevation Profile">`;
+                }
+                
+                html += `
+        
+        <div class="methodology">
+            <h2>Methodology</h2>
+            
+            <h3>Data Sources</h3>
+            <ul>
+                <li><strong>Terrain Data:</strong> NASA SRTM (Shuttle Radar Topography Mission) - 90m resolution digital elevation model</li>
+                <li><strong>Callsign Locations:</strong> FCC database via callook.info API</li>
+                <li><strong>Grid Square Conversion:</strong> Maidenhead locator system</li>
+                <li><strong>Earth Curvature:</strong> 4/3 Earth radius model for atmospheric refraction</li>
+            </ul>
+            
+            <h3>Link Budget Calculations</h3>
+            <p><strong>Free Space Path Loss (FSPL):</strong></p>
+            <pre>FSPL (dB) = 32.45 + 20×log₁₀(distance_km) + 20×log₁₀(freq_MHz)</pre>
+            
+            <p><strong>Received Power:</strong></p>
+            <pre>RX_power (dBm) = TX_power (dBm) + TX_gain (dBi) + RX_gain (dBi) - FSPL (dB) - Diffraction_loss (dB)</pre>
+            
+            <p><strong>Fade Margin:</strong></p>
+            <pre>Fade_margin (dB) = RX_power (dBm) - RX_sensitivity (dBm)
+RX_sensitivity = -118 dBm (assumed for 1200 baud packet radio)</pre>
+            
+            <h3>Terrain Obstruction Analysis</h3>
+            <p><strong>Line of Sight:</strong> Calculated using great circle path with 4/3 Earth radius atmospheric refraction model</p>
+            
+            <p><strong>Fresnel Zone Clearance:</strong> 60% of first Fresnel zone radius computed at each point:</p>
+            <pre>Fresnel_radius (m) = 0.6 × sqrt((λ × d₁ × d₂) / (d₁ + d₂))
+where λ = wavelength (m), d₁ and d₂ = distances from endpoints (m)</pre>
+            
+            <p><strong>Obstruction Classification:</strong></p>
+            <ul>
+                <li>For ground-based VHF, only terrain penetrating <em>above</em> line-of-sight or into upper Fresnel zone is flagged</li>
+                <li>Lower Fresnel zone obstruction is normal/acceptable for terrestrial paths</li>
+                <li><strong>Clear:</strong> Terrain stays below upper Fresnel zone (&lt; 50% penetration)</li>
+                <li><strong>Marginal:</strong> 25-50% upper Fresnel zone penetration (~3 dB loss)</li>
+                <li><strong>Obstructed:</strong> 50-75% upper Fresnel zone penetration (~8-15 dB loss)</li>
+                <li><strong>Blocked:</strong> Terrain above line-of-sight or &gt;75% penetration (~30 dB loss)</li>
+            </ul>
+            
+            <p><strong>Diffraction Loss:</strong> When terrain obstructs the path, knife-edge diffraction loss is estimated:</p>
+            <ul>
+                <li>Terrain blocking LOS: 30 dB loss (severe)</li>
+                <li>&gt;75% upper Fresnel: 15 dB loss</li>
+                <li>50-75% upper Fresnel: 8 dB loss</li>
+                <li>&lt;50% upper Fresnel: 3 dB loss</li>
+            </ul>
+            
+            <h3>Limitations</h3>
+            <ul>
+                <li>SRTM data shows <em>bare earth</em> elevation - does not include buildings, trees, or foliage</li>
+                <li>90m resolution may miss narrow obstructions</li>
+                <li>Diffraction loss estimates are approximate</li>
+                <li>Does not account for atmospheric conditions, precipitation, or multipath fading</li>
+                <li>Fade margin calculations assume ideal receiver sensitivity</li>
+            </ul>
+        </div>
+        
+        <div class="footer">
+            <p><em>Generated by VHF Path Analysis Tool</em></p>
+        </div>
+    </div>
+</body>
+</html>`;
+                
+                // Create gist via GitHub API with authentication
+                const gistData = {
+                    description: `VHF Path Analysis: ${fd.tx_location} to ${fd.rx_location}`,
+                    public: true,
+                    files: {
+                        'vhf-path-analysis.html': {
+                            content: html
+                        }
+                    }
+                };
+                
+                const response = await fetch('https://api.github.com/gists', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `token ${token}`
+                    },
+                    body: JSON.stringify(gistData)
+                });
+                
+                const gist = await response.json();
+                
+                if (gist.html_url) {
+                    // Get the raw URL directly from the gist files object
+                    const rawUrl = gist.files['vhf-path-analysis.html'].raw_url;
+                    
+                    // Use raw.githack.com to render the HTML (more reliable than htmlpreview)
+                    // Replace githubusercontent.com with raw.githack.com for CDN rendering
+                    const renderUrl = rawUrl.replace('gist.githubusercontent.com', 'gist.githack.com');
+                    
+                    // Create URLs
+                    const gistUrl = gist.html_url;
+                    
+                    // Copy rendered HTML URL to clipboard
+                    await navigator.clipboard.writeText(renderUrl);
+                    
+                    const message = `✓ Gist created!\n\n` +
+                        `Rendered Report (copied to clipboard):\n${renderUrl}\n\n` +
+                        `Gist Source:\n${gistUrl}\n\n` +
+                        `Opening rendered report...`;
+                    
+                    alert(message);
+                    
+                    // Open the rendered HTML version
+                    window.open(renderUrl, '_blank');
+                } else if (gist.message === 'Bad credentials') {
+                    // Token invalid - clear it and retry
+                    localStorage.removeItem('github_token');
+                    alert('GitHub token is invalid or expired. Please try again with a new token.');
+                    btn.textContent = '📤 Share as Gist';
+                    btn.disabled = false;
+                } else {
+                    alert('Error creating gist: ' + (gist.message || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error sharing: ' + error.message);
+            } finally {
+                btn.textContent = '📤 Share as Gist';
+                btn.disabled = false;
+            }
+        }
+        
+        function clearGitHubToken() {
+            localStorage.removeItem('github_token');
+            alert('GitHub token cleared. You will be prompted for a new one next time you share.');
+        }
+        
+        
+        // Global variable to store current analysis results
+        let currentAnalysisResults = null;
+        
+        document.getElementById('analysisForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Hide previous results and share button
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('shareBtn').style.display = 'none';
+            
+            // Collect form data
+            const formData = {
+                tx_location: document.getElementById('tx_location').value,
+                rx_location: document.getElementById('rx_location').value,
+                tx_height: parseFloat(document.getElementById('tx_height').value),
+                rx_height: parseFloat(document.getElementById('rx_height').value),
+                tx_power: parseFloat(document.getElementById('tx_power').value),
+                freq: parseFloat(document.getElementById('freq').value),
+                tx_antenna: document.getElementById('tx_antenna').value,
+                rx_antenna: document.getElementById('rx_antenna').value,
+                imperial: document.getElementById('imperial').checked,
+                generate_plot: document.getElementById('generate_plot').checked
+            };
+            
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.error) {
+                    document.getElementById('error').textContent = data.error;
+                    document.getElementById('error').style.display = 'block';
+                    return;
+                }
+                
+                // Store results and form data for sharing
+                currentAnalysisResults = {
+                    formData: formData,
+                    results: data
+                };
+                
+                // Display results
+                displayResults(data);
+                
+                // Show share button
+                document.getElementById('shareBtn').style.display = 'inline-block';
+                
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').textContent = 'Error: ' + error.message;
+                document.getElementById('error').style.display = 'block';
+            }
+        });
+        
+        function displayResults(data) {
+            const link = data.link_budget;
+            const distUnit = data.distance_unit;
+            
+            // Set distance
+            document.getElementById('distance').textContent = 
+                data.distance.toFixed(2) + ' ' + distUnit;
+            
+            // Set path loss
+            document.getElementById('fspl').textContent = 
+                link.fspl_db.toFixed(1) + ' dB';
+            
+            // Set RX power
+            document.getElementById('rx-power').textContent = 
+                link.rx_power_dbm.toFixed(1) + ' dBm';
+            
+            // Show diffraction loss if present
+            if (link.diffraction_loss_db && link.diffraction_loss_db > 0) {
+                document.getElementById('diffraction-box').style.display = 'block';
+                document.getElementById('diffraction-loss').textContent = 
+                    link.diffraction_loss_db.toFixed(1) + ' dB';
+            } else {
+                document.getElementById('diffraction-box').style.display = 'none';
+            }
+            
+            // Show obstruction note if present
+            if (link.obstruction_note) {
+                document.getElementById('obstruction-note').style.display = 'block';
+                document.getElementById('obstruction-text').textContent = link.obstruction_note;
+            } else {
+                document.getElementById('obstruction-note').style.display = 'none';
+            }
+            
+            // Set fade margin with color
+            const marginEl = document.getElementById('fade-margin');
+            marginEl.textContent = link.fade_margin_db.toFixed(1) + ' dB';
+            
+            // Set status badge - consider both fade margin AND link viability
+            const statusBadge = document.getElementById('status-badge');
+            
+            // If link is not viable (terrain blocked), always show bad status
+            if (!link.viable) {
+                statusBadge.textContent = '✗ Not Viable';
+                statusBadge.className = 'status-badge status-bad';
+            } else if (link.fade_margin_db > 10) {
+                statusBadge.textContent = '✓ Excellent';
+                statusBadge.className = 'status-badge status-good';
+            } else if (link.fade_margin_db > 0) {
+                statusBadge.textContent = '⚠ Marginal';
+                statusBadge.className = 'status-badge status-poor';
+            } else {
+                statusBadge.textContent = '✗ Insufficient';
+                statusBadge.className = 'status-badge status-bad';
+            }
+            
+            // Display location details
+            const tx = data.tx_info;
+            const rx = data.rx_info;
+            const detailsHTML = `
+                <p><strong>TX:</strong> ${tx.label || tx.callsign || 'Unknown'} 
+                   (${tx.lat.toFixed(4)}°N, ${Math.abs(tx.lon).toFixed(4)}°W)
+                   ${tx.grid ? ' - Grid: ' + tx.grid : ''}</p>
+                <p><strong>RX:</strong> ${rx.label || rx.callsign || 'Unknown'} 
+                   (${rx.lat.toFixed(4)}°N, ${Math.abs(rx.lon).toFixed(4)}°W)
+                   ${rx.grid ? ' - Grid: ' + rx.grid : ''}</p>
+            `;
+            document.getElementById('location-details').innerHTML = detailsHTML;
+            
+            // Display plot if available
+            if (data.plot) {
+                document.getElementById('plot-image').src = 'data:image/png;base64,' + data.plot;
+                document.getElementById('plot-container').style.display = 'block';
+            } else {
+                document.getElementById('plot-container').style.display = 'none';
+            }
+            
+            // Show results
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
