@@ -1544,10 +1544,25 @@ where λ = wavelength (m), d₁ and d₂ = distances from endpoints (m)</pre>
                     },
                     body: JSON.stringify(formData)
                 });
-                
-                const data = await response.json();
+
                 document.getElementById('loading').style.display = 'none';
-                
+
+                // Check if response is OK before parsing JSON
+                if (!response.ok) {
+                    let errorMsg = 'Request failed';
+                    try {
+                        const data = await response.json();
+                        errorMsg = data.error || errorMsg;
+                    } catch (e) {
+                        errorMsg = `Server error: ${response.status} ${response.statusText}`;
+                    }
+                    document.getElementById('error').textContent = errorMsg;
+                    document.getElementById('error').style.display = 'block';
+                    return;
+                }
+
+                const data = await response.json();
+
                 if (data.error) {
                     document.getElementById('error').textContent = data.error;
                     document.getElementById('error').style.display = 'block';
