@@ -647,9 +647,10 @@ def generate_elevation_plot(tx_info, rx_info, tx_height_m, rx_height_m, freq_mhz
 def index():
     """Main page"""
     antennas = load_antennas()
-    return render_template('index.html', 
-                          antennas=antennas, 
-                          node_aliases=NODE_ALIASES)
+    return render_template('index.html',
+                          antennas=antennas,
+                          node_aliases=NODE_ALIASES,
+                          url_prefix=URL_PREFIX)
 
 @bp.route('/api/analyze', methods=['POST'])
 def analyze():

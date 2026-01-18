@@ -674,6 +674,9 @@
     </div>
     
     <script>
+        // URL prefix for API calls (for reverse proxy support)
+        const urlPrefix = '{{ url_prefix }}';
+
         // Update GitHub status on settings open
         function updateGitHubStatus() {
             const token = localStorage.getItem('github_token');
@@ -737,7 +740,7 @@
                     lon = parseFloat(coordMatch[2]);
                 } else {
                     // Use dedicated resolve endpoint
-                    const resolveResponse = await fetch('/api/resolve-location', {
+                    const resolveResponse = await fetch(`${urlPrefix}/api/resolve-location`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({location: location})
@@ -758,7 +761,7 @@
                 // Now snap to peak
                 btn.textContent = '🔄 Finding peak...';
                 
-                const response = await fetch('/api/snap-to-peak', {
+                const response = await fetch(`${urlPrefix}/api/snap-to-peak`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({lat, lon, radius: 500})
@@ -804,7 +807,7 @@
         
         async function loadSettings() {
             try {
-                const response = await fetch('/api/settings');
+                const response = await fetch(`${urlPrefix}/api/settings`);
                 const settings = await response.json();
                 
                 // Display nodes
@@ -828,7 +831,7 @@
                 }
                 
                 // Load custom locations
-                const locResponse = await fetch('/api/custom-locations');
+                const locResponse = await fetch(`${urlPrefix}/api/custom-locations`);
                 const customLocs = await locResponse.json();
                 const customLocationsList = document.getElementById('customLocationsList');
                 customLocationsList.innerHTML = '';
@@ -849,7 +852,7 @@
                 }
                 
                 // Display antennas
-                const antResponse = await fetch('/api/antennas');
+                const antResponse = await fetch(`${urlPrefix}/api/antennas`);
                 const antennas = await antResponse.json();
                 const antennasList = document.getElementById('antennasList');
                 antennasList.innerHTML = '';
@@ -927,7 +930,7 @@
             btn.disabled = true;
             
             try {
-                const response = await fetch('/api/snap-to-peak', {
+                const response = await fetch(`${urlPrefix}/api/snap-to-peak`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({lat, lon, radius: 500})
@@ -997,7 +1000,7 @@
             }
             
             try {
-                const response = await fetch('/api/custom-locations', {
+                const response = await fetch(`${urlPrefix}/api/custom-locations`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({alias, label, lat, lon, grid})
@@ -1025,7 +1028,7 @@
             if (!confirm(`Delete location "${alias}"?`)) return;
             
             try {
-                const response = await fetch(`/api/custom-locations/${alias}`, {method: 'DELETE'});
+                const response = await fetch(`${urlPrefix}/api/custom-locations/${alias}`, {method: 'DELETE'});
                 const data = await response.json();
                 if (data.success) {
                     loadSettings();
@@ -1051,7 +1054,7 @@
             }
             
             try {
-                const response = await fetch('/api/nodes', {
+                const response = await fetch(`${urlPrefix}/api/nodes`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({alias, callsign, name, lat, lon})
@@ -1079,7 +1082,7 @@
             if (!confirm(`Delete node alias "${alias}"?`)) return;
             
             try {
-                const response = await fetch(`/api/nodes/${alias}`, {method: 'DELETE'});
+                const response = await fetch(`${urlPrefix}/api/nodes/${alias}`, {method: 'DELETE'});
                 const data = await response.json();
                 if (data.success) {
                     loadSettings();
@@ -1102,7 +1105,7 @@
             }
             
             try {
-                const response = await fetch('/api/antennas', {
+                const response = await fetch(`${urlPrefix}/api/antennas`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({key, name, gain_dbi})
@@ -1128,7 +1131,7 @@
             if (!confirm(`Delete antenna "${key}"?`)) return;
             
             try {
-                const response = await fetch(`/api/antennas/${key}`, {method: 'DELETE'});
+                const response = await fetch(`${urlPrefix}/api/antennas/${key}`, {method: 'DELETE'});
                 const data = await response.json();
                 if (data.success) {
                     loadSettings();
@@ -1537,7 +1540,7 @@ where λ = wavelength (m), d₁ and d₂ = distances from endpoints (m)</pre>
             };
             
             try {
-                const response = await fetch('/api/analyze', {
+                const response = await fetch(`${urlPrefix}/api/analyze`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
