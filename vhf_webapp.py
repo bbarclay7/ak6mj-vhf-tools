@@ -1184,19 +1184,40 @@ def query_repeaterbook(state, bands):
     Query RepeaterBook API for repeaters
 
     RepeaterBook API documentation: https://www.repeaterbook.com/wiki/doku.php?id=api
-    API key can be obtained for free at: https://www.repeaterbook.com/
+    Email/API contact: Set REPEATERBOOK_EMAIL environment variable
 
-    Set environment variable: REPEATERBOOK_API_KEY
+    Based on working implementation: https://github.com/mycodeplug/dzcb
     """
-    api_key = os.getenv('REPEATERBOOK_API_KEY', '')
+    # Get email for API identification (eventually will require API key)
+    contact_email = os.getenv('REPEATERBOOK_EMAIL', os.getenv('REPEATERBOOK_API_KEY', ''))
 
-    if not api_key:
-        # Return empty list if no API key configured
+    if not contact_email:
+        # Return empty list if no contact configured
         # Users can still use the app without RepeaterBook integration
+        print("RepeaterBook API requires email/API key. Set REPEATERBOOK_EMAIL or REPEATERBOOK_API_KEY environment variable.")
         return []
 
     if not state:
         return []
+
+    # Map state codes to full state names (RepeaterBook uses full names)
+    state_names = {
+        'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas',
+        'CA': 'California', 'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware',
+        'FL': 'Florida', 'GA': 'Georgia', 'HI': 'Hawaii', 'ID': 'Idaho',
+        'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa', 'KS': 'Kansas',
+        'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+        'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi',
+        'MO': 'Missouri', 'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada',
+        'NH': 'New Hampshire', 'NJ': 'New Jersey', 'NM': 'New Mexico', 'NY': 'New York',
+        'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio', 'OK': 'Oklahoma',
+        'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+        'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah',
+        'VT': 'Vermont', 'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia',
+        'WI': 'Wisconsin', 'WY': 'Wyoming', 'DC': 'District of Columbia'
+    }
+
+    state_name = state_names.get(state.upper(), state)
 
     repeaters = []
 
@@ -1211,82 +1232,115 @@ def query_repeaterbook(state, bands):
         '23cm': (1240, 1300)
     }
 
-    for band in bands:
-        freq_range = band_map.get(band)
-        if not freq_range:
-            continue
+    try:
+        # RepeaterBook API endpoint (gets all repeaters for state)
+        url = 'https://www.repeaterbook.com/api/export.php'
+        params = {
+            'state': state_name
+        }
 
-        try:
-            # RepeaterBook API endpoint
-            # Note: The exact parameters may vary - consult current API docs
-            url = 'https://www.repeaterbook.com/api/export.php'
-            params = {
-                'state': state.upper(),
-                'frequency': freq_range[0],  # Start frequency
-                # Add other parameters as needed based on API docs
-            }
+        headers = {
+            'User-Agent': f'VHF-Tools/1.0 (Personal Use, {contact_email})',
+        }
 
-            headers = {
-                'User-Agent': 'VHF-Tools/1.0 (Personal Use)',
-            }
+        print(f"Querying RepeaterBook for {state_name}...")
+        response = requests.get(url, params=params, headers=headers, timeout=30)
 
-            # Some APIs use the key in headers, others in params
-            # Adjust based on actual RepeaterBook API requirements
-            if api_key:
-                params['api_key'] = api_key
+        if response.status_code == 200:
+            data = response.json()
 
-            response = requests.get(url, params=params, headers=headers, timeout=10)
+            # Parse RepeaterBook response (returns dict with 'results' array)
+            if isinstance(data, dict) and 'results' in data:
+                results = data['results']
+            elif isinstance(data, list):
+                results = data
+            else:
+                print(f"Unexpected RepeaterBook response format: {type(data)}")
+                return []
 
-            if response.status_code == 200:
-                data = response.json()
+            print(f"Found {len(results)} total repeaters in {state_name}")
 
-                # Parse RepeaterBook response
-                # The exact format depends on the API version
-                if isinstance(data, dict) and 'results' in data:
-                    results = data['results']
-                elif isinstance(data, list):
-                    results = data
-                else:
-                    results = []
+            # Filter and extract repeater information
+            for item in results:
+                try:
+                    # Get frequency
+                    freq_str = item.get('Frequency', '0')
+                    if not freq_str or freq_str == '0':
+                        continue
 
-                # Extract repeater information
-                for item in results:
-                    # Parse repeater data from API response
-                    # Field names may vary - adjust based on actual API response
+                    frequency = float(freq_str)
+
+                    # Filter by selected bands
+                    in_selected_band = False
+                    for band in bands:
+                        freq_range = band_map.get(band)
+                        if freq_range and freq_range[0] <= frequency <= freq_range[1]:
+                            in_selected_band = True
+                            break
+
+                    if not in_selected_band:
+                        continue
+
+                    # Get coordinates
+                    lat = float(item.get('Lat', 0) or 0)
+                    lon = float(item.get('Long', 0) or 0)
+                    if lat == 0 or lon == 0:
+                        continue  # Skip repeaters without valid coordinates
+
+                    # Parse input frequency (for offset calculation)
+                    input_freq_str = item.get('Input Freq', '')
+                    if input_freq_str and input_freq_str != '0':
+                        input_freq = float(input_freq_str)
+                        offset_mhz = input_freq - frequency
+                    else:
+                        # Use standard offsets if input freq not provided
+                        if 144 <= frequency < 148:  # 2m
+                            offset_mhz = -0.6 if frequency < 147 else 0.6
+                        elif 420 <= frequency < 450:  # 70cm
+                            offset_mhz = 5.0
+                        elif 219 <= frequency < 225:  # 1.25m
+                            offset_mhz = -1.6
+                        else:
+                            offset_mhz = 0
+
+                    # Get tone (PL = encode tone, TSQ = decode tone)
+                    tone_str = item.get('PL', item.get('TSQ', '88.5'))
+                    try:
+                        tone = float(tone_str) if tone_str and tone_str != '' else 88.5
+                    except (ValueError, TypeError):
+                        tone = 88.5
+
                     repeater = {
-                        'callsign': item.get('Callsign', item.get('callsign', 'Unknown')),
-                        'frequency': float(item.get('Frequency', item.get('frequency', 0))),
-                        'offset_mhz': float(item.get('Input Freq', item.get('offset', 0))),
-                        'tone': float(item.get('PL', item.get('tone', 88.5)) or 88.5),
-                        'lat': float(item.get('Lat', item.get('latitude', 0))),
-                        'lon': float(item.get('Long', item.get('longitude', 0))),
-                        'location': item.get('Nearest City', item.get('location', 'Unknown')),
-                        'notes': item.get('Notes', item.get('notes', '')),
-                        'antenna_height_m': float(item.get('Antenna Height', item.get('antenna_height', 50)))
+                        'callsign': item.get('Callsign', 'Unknown'),
+                        'frequency': frequency,
+                        'offset_mhz': offset_mhz,
+                        'tone': tone,
+                        'lat': lat,
+                        'lon': lon,
+                        'location': item.get('Nearest City', item.get('Landmark', 'Unknown')),
+                        'notes': item.get('Notes', ''),
+                        'antenna_height_m': 50  # Default, not provided by API
                     }
-
-                    # Calculate offset if not provided directly
-                    if repeater['offset_mhz'] == 0 and repeater['frequency'] > 0:
-                        # Standard offsets
-                        freq = repeater['frequency']
-                        if 144 <= freq < 148:  # 2m
-                            repeater['offset_mhz'] = 0.6
-                        elif 420 <= freq < 450:  # 70cm
-                            repeater['offset_mhz'] = 5.0
-                        elif 219 <= freq < 225:  # 1.25m
-                            repeater['offset_mhz'] = -1.6
 
                     repeaters.append(repeater)
 
-        except requests.exceptions.Timeout:
-            print(f"RepeaterBook API timeout for band {band}")
-            continue
-        except requests.exceptions.RequestException as e:
-            print(f"RepeaterBook API error for band {band}: {e}")
-            continue
-        except (ValueError, KeyError) as e:
-            print(f"RepeaterBook API parse error for band {band}: {e}")
-            continue
+                except (ValueError, TypeError, KeyError) as e:
+                    # Skip malformed repeater entries
+                    continue
+
+            print(f"Filtered to {len(repeaters)} repeaters in selected bands")
+
+        elif response.status_code == 429:
+            print("RepeaterBook API rate limit exceeded. Please try again later.")
+        else:
+            print(f"RepeaterBook API returned status {response.status_code}")
+
+    except requests.exceptions.Timeout:
+        print("RepeaterBook API request timed out")
+    except requests.exceptions.RequestException as e:
+        print(f"RepeaterBook API error: {e}")
+    except (ValueError, KeyError) as e:
+        print(f"RepeaterBook API parse error: {e}")
 
     return repeaters
 

@@ -62,15 +62,23 @@ The repeater coverage feature helps you discover which repeaters are reachable f
 
 ### Setup
 
-1. **Get a RepeaterBook API Key** (free for non-commercial use):
-   - Visit https://www.repeaterbook.com/
-   - Create a free account
-   - Generate an API key
+**RepeaterBook API Access** (free for non-commercial use):
 
-2. **Configure the API Key**:
-   ```bash
-   export REPEATERBOOK_API_KEY="your-api-key-here"
-   ```
+The RepeaterBook API requires contact information for identification. You can provide this in two ways:
+
+**Option 1: Email (Recommended for personal use)**
+```bash
+export REPEATERBOOK_EMAIL="your-email@example.com"
+```
+
+**Option 2: API Key (For registered API users)**
+```bash
+export REPEATERBOOK_API_KEY="your-api-key-here"
+```
+
+- Visit [RepeaterBook](https://www.repeaterbook.com/) to learn more about API access
+- Register at [RepeaterBook Registration](https://www.repeaterbook.com/register) if needed
+- See [API Documentation](https://www.repeaterbook.com/wiki/doku.php?id=api/) for details
 
 ### Usage
 
