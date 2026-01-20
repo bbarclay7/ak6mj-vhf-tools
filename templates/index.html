@@ -507,10 +507,100 @@
                     <button type="button" class="btn-secondary" onclick="shareAsGist()" id="shareBtn" style="display:none;">📤 Share as Gist</button>
                 </div>
             </form>
-            
+
+            <!-- Repeater Coverage Lookup Section -->
+            <div class="form-section" style="margin-top: 30px; background: #e8f4f8; border: 2px solid #667eea;">
+                <h2>📡 Repeater Coverage Lookup</h2>
+                <p style="color: #666; margin-bottom: 20px;">Find reachable repeaters from your location using terrain analysis</p>
+
+                <form id="repeaterForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="repeater_location">Your Location</label>
+                            <input type="text" id="repeater_location" name="repeater_location"
+                                   placeholder="Callsign, address, grid square, or coordinates" required>
+                            <span class="hint">Starting point for repeater search</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="repeater_state">State</label>
+                            <input type="text" id="repeater_state" name="repeater_state"
+                                   placeholder="CA" maxlength="2" required
+                                   style="text-transform: uppercase;">
+                            <span class="hint">Two-letter state code (e.g., CA, WA)</span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="repeater_radius">Search Radius (km)</label>
+                            <input type="number" id="repeater_radius" name="repeater_radius"
+                                   value="80" min="10" max="200" step="10" required>
+                            <span class="hint">Search radius (default: 80km / ~50mi)</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="repeater_tx_power">Your TX Power (Watts)</label>
+                            <input type="number" id="repeater_tx_power" name="repeater_tx_power"
+                                   value="5" min="0.1" step="0.1" required>
+                            <span class="hint">Your transmit power</span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="repeater_tx_height">Your Antenna Height (m)</label>
+                            <input type="number" id="repeater_tx_height" name="repeater_tx_height"
+                                   value="1.5" min="0.1" step="0.1" required>
+                            <span class="hint">Height above ground level</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="repeater_tx_antenna">Your Antenna Type</label>
+                            <select id="repeater_tx_antenna" name="repeater_tx_antenna">
+                                {% for key, antenna in antennas.items() %}
+                                <option value="{{ key }}">{{ antenna.name }} ({{ antenna.gain_dbi }} dBi)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Bands to Search</label>
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="bands" value="2m" checked> 2m (VHF)
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="bands" value="70cm" checked> 70cm (UHF)
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="bands" value="6m"> 6m
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="bands" value="1.25m"> 1.25m
+                            </label>
+                        </div>
+                    </div>
+
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                        <strong>⚠️ Note:</strong> Requires RepeaterBook API key set as environment variable REPEATERBOOK_API_KEY.
+                        <a href="https://www.repeaterbook.com/" target="_blank" style="color: #667eea;">Get free API key →</a>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn-primary">🔍 Find Repeaters</button>
+                        <button type="button" class="btn-secondary" onclick="resetRepeaterForm()">🔄 Reset</button>
+                        <button type="button" class="btn-secondary" onclick="downloadChirp()" id="chirpBtn" style="display:none;">💾 Download CHIRP File</button>
+                    </div>
+                </form>
+            </div>
+
             <div class="loading" id="loading">
                 <div class="spinner"></div>
                 <p>Analyzing path and fetching terrain data...</p>
+            </div>
+
+            <div class="loading" id="repeaterLoading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Searching repeaters and analyzing coverage...</p>
             </div>
             
             <div id="error" class="error" style="display: none;"></div>
@@ -555,6 +645,55 @@
                 <div id="plot-container" class="plot-container" style="display: none;">
                     <h3 style="margin-bottom: 15px;">Elevation Profile</h3>
                     <img id="plot-image" src="" alt="Elevation Profile">
+                </div>
+            </div>
+
+            <!-- Repeater Coverage Results -->
+            <div id="repeaterResults" style="display: none;">
+                <div class="result-card">
+                    <div class="result-header">
+                        <h3>📡 Repeater Coverage Results</h3>
+                        <span class="status-badge" id="repeater-status-badge"></span>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">Total Found</div>
+                            <div class="stat-value" id="total-repeaters"></div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">In Radius</div>
+                            <div class="stat-value" id="in-radius-repeaters"></div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Reachable</div>
+                            <div class="stat-value" id="reachable-repeaters" style="color: #28a745;"></div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">With Obstructions</div>
+                            <div class="stat-value" id="obstructed-repeaters" style="color: #ffc107;"></div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px; overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; background: white;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                    <th style="padding: 12px; text-align: left;">Callsign</th>
+                                    <th style="padding: 12px; text-align: left;">Frequency</th>
+                                    <th style="padding: 12px; text-align: left;">Offset</th>
+                                    <th style="padding: 12px; text-align: left;">Tone</th>
+                                    <th style="padding: 12px; text-align: left;">Location</th>
+                                    <th style="padding: 12px; text-align: right;">Distance</th>
+                                    <th style="padding: 12px; text-align: left;">Status</th>
+                                    <th style="padding: 12px; text-align: right;">RX Power</th>
+                                    <th style="padding: 12px; text-align: right;">Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="repeater-table-body">
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1670,6 +1809,207 @@ where λ = wavelength (m), d₁ and d₂ = distances from endpoints (m)</pre>
             // Show results
             document.getElementById('results').style.display = 'block';
             document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Repeater coverage lookup
+        let repeaterSearchResults = [];
+
+        document.getElementById('repeaterForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Hide previous results
+            document.getElementById('repeaterResults').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('repeaterLoading').style.display = 'block';
+            document.getElementById('chirpBtn').style.display = 'none';
+
+            // Collect bands
+            const bands = [];
+            document.querySelectorAll('input[name="bands"]:checked').forEach(cb => {
+                bands.push(cb.value);
+            });
+
+            // Collect form data
+            const formData = {
+                location: document.getElementById('repeater_location').value,
+                state: document.getElementById('repeater_state').value.toUpperCase(),
+                radius_km: parseFloat(document.getElementById('repeater_radius').value),
+                tx_power: parseFloat(document.getElementById('repeater_tx_power').value),
+                tx_height: parseFloat(document.getElementById('repeater_tx_height').value),
+                tx_antenna: document.getElementById('repeater_tx_antenna').value,
+                bands: bands
+            };
+
+            try {
+                const response = await fetch(`${urlPrefix}/api/repeater-coverage`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                document.getElementById('repeaterLoading').style.display = 'none';
+
+                if (!response.ok) {
+                    let errorMsg = 'Request failed';
+                    try {
+                        const data = await response.json();
+                        errorMsg = data.error || errorMsg;
+                    } catch (e) {
+                        errorMsg = `Server error: ${response.status} ${response.statusText}`;
+                    }
+                    document.getElementById('error').textContent = errorMsg;
+                    document.getElementById('error').style.display = 'block';
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    document.getElementById('error').textContent = data.error;
+                    document.getElementById('error').style.display = 'block';
+                    return;
+                }
+
+                // Store results
+                repeaterSearchResults = data.repeaters;
+
+                // Display results
+                displayRepeaterResults(data);
+
+                // Show CHIRP button if there are reachable repeaters
+                if (data.reachable > 0) {
+                    document.getElementById('chirpBtn').style.display = 'inline-block';
+                }
+
+            } catch (error) {
+                document.getElementById('repeaterLoading').style.display = 'none';
+                document.getElementById('error').textContent = 'Error: ' + error.message;
+                document.getElementById('error').style.display = 'block';
+            }
+        });
+
+        function displayRepeaterResults(data) {
+            // Set summary stats
+            document.getElementById('total-repeaters').textContent = data.total_repeaters;
+            document.getElementById('in-radius-repeaters').textContent = data.in_radius;
+            document.getElementById('reachable-repeaters').textContent = data.reachable;
+
+            const obstructed = data.in_radius - data.reachable;
+            document.getElementById('obstructed-repeaters').textContent = obstructed;
+
+            // Set status badge
+            const statusBadge = document.getElementById('repeater-status-badge');
+            if (data.reachable > 0) {
+                statusBadge.textContent = '✓ Repeaters Found';
+                statusBadge.style.background = 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)';
+            } else if (data.in_radius > 0) {
+                statusBadge.textContent = '⚠ No Clear Paths';
+                statusBadge.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+            } else {
+                statusBadge.textContent = 'No Repeaters';
+                statusBadge.style.background = 'linear-gradient(135deg, #4b6cb7 0%, #182848 100%)';
+            }
+
+            // Populate table
+            const tbody = document.getElementById('repeater-table-body');
+            tbody.innerHTML = '';
+
+            data.repeaters.forEach(repeater => {
+                const row = document.createElement('tr');
+                row.style.borderBottom = '1px solid #dee2e6';
+
+                // Status indicator
+                let statusText = '';
+                let statusColor = '';
+                if (repeater.reachable) {
+                    if (repeater.obstruction === 'clear') {
+                        statusText = '✓ Clear';
+                        statusColor = '#28a745';
+                    } else if (repeater.obstruction.includes('fresnel')) {
+                        statusText = '⚠ Marginal';
+                        statusColor = '#ffc107';
+                    } else {
+                        statusText = '⚠ Obstructed';
+                        statusColor = '#fd7e14';
+                    }
+                } else {
+                    statusText = '✗ Blocked';
+                    statusColor = '#dc3545';
+                }
+
+                row.innerHTML = `
+                    <td style="padding: 12px; font-weight: 600;">${repeater.callsign || 'Unknown'}</td>
+                    <td style="padding: 12px;">${repeater.frequency?.toFixed(4)} MHz</td>
+                    <td style="padding: 12px;">${repeater.offset_mhz > 0 ? '+' : ''}${repeater.offset_mhz?.toFixed(3)} MHz</td>
+                    <td style="padding: 12px;">${repeater.tone?.toFixed(1) || 'None'} Hz</td>
+                    <td style="padding: 12px;">${repeater.location || 'Unknown'}</td>
+                    <td style="padding: 12px; text-align: right;">${repeater.distance_km?.toFixed(1)} km</td>
+                    <td style="padding: 12px; color: ${statusColor}; font-weight: 600;">${statusText}</td>
+                    <td style="padding: 12px; text-align: right;">${repeater.link_budget?.rx_power_dbm?.toFixed(1)} dBm</td>
+                    <td style="padding: 12px; text-align: right; color: ${repeater.link_budget?.fade_margin_db > 0 ? '#28a745' : '#dc3545'};">
+                        ${repeater.link_budget?.fade_margin_db?.toFixed(1)} dB
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Show results
+            document.getElementById('repeaterResults').style.display = 'block';
+            document.getElementById('repeaterResults').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function resetRepeaterForm() {
+            document.getElementById('repeaterForm').reset();
+            document.getElementById('repeaterResults').style.display = 'none';
+            document.getElementById('chirpBtn').style.display = 'none';
+        }
+
+        async function downloadChirp() {
+            if (repeaterSearchResults.length === 0) {
+                alert('No repeater results to export');
+                return;
+            }
+
+            // Filter to only reachable repeaters
+            const reachableRepeaters = repeaterSearchResults.filter(r => r.reachable);
+
+            if (reachableRepeaters.length === 0) {
+                alert('No reachable repeaters to export');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${urlPrefix}/api/chirp-export`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        repeaters: reachableRepeaters,
+                        filename: 'repeaters.csv'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate CHIRP file');
+                }
+
+                // Download the file
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'repeaters.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+            } catch (error) {
+                alert('Error generating CHIRP file: ' + error.message);
+            }
         }
     </script>
 </body>

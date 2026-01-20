@@ -1024,6 +1024,319 @@ def delete_node(alias):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@bp.route('/api/repeater-coverage', methods=['POST'])
+def repeater_coverage():
+    """Find reachable repeaters from a given location using terrain analysis"""
+    try:
+        data = request.json
+        location = data.get('location')
+        radius_km = float(data.get('radius_km', 80))  # Default 80km (~50mi) search radius
+        bands = data.get('bands', ['2m', '70cm'])  # Default VHF/UHF bands
+        tx_height = float(data.get('tx_height', 1.5))  # User's antenna height
+        tx_power = float(data.get('tx_power', 5))  # User's TX power (watts)
+        tx_antenna = data.get('tx_antenna', 'rubber_ducky')
+        state = data.get('state', '')  # State code (e.g., 'CA', 'WA')
+
+        # Parse user location
+        cache = load_cache()
+        user_info = parse_location(location, cache)
+        if not user_info:
+            return jsonify({'error': f'Could not resolve location: {location}'}), 400
+
+        # Get antenna gains
+        antennas = load_antennas()
+        tx_gain = antennas.get(tx_antenna, {}).get('gain_dbi', 0)
+
+        # Query RepeaterBook for repeaters
+        repeaters = query_repeaterbook(state, bands)
+        if not repeaters:
+            return jsonify({'error': 'No repeaters found or RepeaterBook API unavailable'}), 404
+
+        # Filter repeaters within radius and analyze terrain
+        reachable_repeaters = []
+        for repeater in repeaters:
+            # Calculate distance to repeater
+            distance_km = haversine_distance(
+                user_info['lat'], user_info['lon'],
+                repeater['lat'], repeater['lon']
+            )
+
+            # Skip if outside radius
+            if distance_km > radius_km:
+                continue
+
+            # Create repeater location info for analysis
+            repeater_info = {
+                'lat': repeater['lat'],
+                'lon': repeater['lon'],
+                'label': repeater.get('callsign', 'Unknown')
+            }
+
+            # Analyze terrain (user->repeater uplink)
+            rx_height = repeater.get('antenna_height_m', 50)  # Typical repeater antenna height
+            freq = repeater.get('frequency', 146.0)
+
+            # Calculate link budget
+            link = calculate_link_budget(
+                distance_km, freq, tx_power, tx_gain,
+                0, tx_height, rx_height  # rx_gain=0 dBi assumed, will get from repeater if available
+            )
+
+            # Generate terrain obstruction info if SRTM available
+            obstruction_severity = 'unknown'
+            is_clear = None
+            if SRTM_AVAILABLE:
+                try:
+                    _, _, obstruction_info = generate_elevation_plot(
+                        user_info, repeater_info, tx_height, rx_height, freq, False
+                    )
+                    if obstruction_info:
+                        is_clear = obstruction_info['is_clear']
+                        if obstruction_info['terrain_above_los']:
+                            clearance_deficit = abs(obstruction_info['min_clearance'])
+                            if clearance_deficit > 100:
+                                obstruction_severity = 'blocked'
+                                link['diffraction_loss_db'] = 60
+                                link['viable'] = False
+                            elif clearance_deficit > 20:
+                                obstruction_severity = 'severe'
+                                link['diffraction_loss_db'] = 40
+                            else:
+                                obstruction_severity = 'moderate'
+                                link['diffraction_loss_db'] = 20
+                        elif not obstruction_info['is_clear']:
+                            severity_pct = obstruction_info['obstruction_severity']
+                            if severity_pct > 75:
+                                obstruction_severity = 'severe_fresnel'
+                                link['diffraction_loss_db'] = 15
+                            elif severity_pct > 50:
+                                obstruction_severity = 'moderate_fresnel'
+                                link['diffraction_loss_db'] = 8
+                            else:
+                                obstruction_severity = 'minor_fresnel'
+                                link['diffraction_loss_db'] = 3
+                        else:
+                            obstruction_severity = 'clear'
+                            link['diffraction_loss_db'] = 0
+
+                        # Adjust link budget for obstruction
+                        loss_db = link.get('diffraction_loss_db', 0)
+                        link['rx_power_dbm'] -= loss_db
+                        link['fade_margin_db'] -= loss_db
+                        link['viable'] = link['fade_margin_db'] > 0
+                except Exception as e:
+                    # Terrain analysis failed, continue with theoretical analysis
+                    obstruction_severity = 'analysis_failed'
+
+            # Add repeater to results with reachability info
+            repeater_result = {
+                **repeater,
+                'distance_km': round(distance_km, 2),
+                'link_budget': link,
+                'reachable': link['viable'],
+                'obstruction': obstruction_severity,
+                'is_clear': is_clear
+            }
+            reachable_repeaters.append(repeater_result)
+
+        # Sort by distance
+        reachable_repeaters.sort(key=lambda r: r['distance_km'])
+
+        return jsonify({
+            'success': True,
+            'user_location': user_info,
+            'total_repeaters': len(repeaters),
+            'in_radius': len(reachable_repeaters),
+            'reachable': len([r for r in reachable_repeaters if r['reachable']]),
+            'repeaters': reachable_repeaters
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/chirp-export', methods=['POST'])
+def chirp_export():
+    """Generate CHIRP CSV file from repeater list"""
+    try:
+        data = request.json
+        repeaters = data.get('repeaters', [])
+        filename = data.get('filename', 'repeaters.csv')
+
+        if not repeaters:
+            return jsonify({'error': 'No repeaters provided'}), 400
+
+        # Generate CHIRP CSV
+        csv_content = generate_chirp_csv(repeaters)
+
+        # Return as downloadable file
+        return send_file(
+            io.BytesIO(csv_content.encode('utf-8')),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def query_repeaterbook(state, bands):
+    """
+    Query RepeaterBook API for repeaters
+
+    RepeaterBook API documentation: https://www.repeaterbook.com/wiki/doku.php?id=api
+    API key can be obtained for free at: https://www.repeaterbook.com/
+
+    Set environment variable: REPEATERBOOK_API_KEY
+    """
+    api_key = os.getenv('REPEATERBOOK_API_KEY', '')
+
+    if not api_key:
+        # Return empty list if no API key configured
+        # Users can still use the app without RepeaterBook integration
+        return []
+
+    if not state:
+        return []
+
+    repeaters = []
+
+    # Map band names to RepeaterBook frequency ranges
+    band_map = {
+        '10m': (28, 30),
+        '6m': (50, 54),
+        '2m': (144, 148),
+        '1.25m': (219, 225),
+        '70cm': (420, 450),
+        '33cm': (902, 928),
+        '23cm': (1240, 1300)
+    }
+
+    for band in bands:
+        freq_range = band_map.get(band)
+        if not freq_range:
+            continue
+
+        try:
+            # RepeaterBook API endpoint
+            # Note: The exact parameters may vary - consult current API docs
+            url = 'https://www.repeaterbook.com/api/export.php'
+            params = {
+                'state': state.upper(),
+                'frequency': freq_range[0],  # Start frequency
+                # Add other parameters as needed based on API docs
+            }
+
+            headers = {
+                'User-Agent': 'VHF-Tools/1.0 (Personal Use)',
+            }
+
+            # Some APIs use the key in headers, others in params
+            # Adjust based on actual RepeaterBook API requirements
+            if api_key:
+                params['api_key'] = api_key
+
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+
+            if response.status_code == 200:
+                data = response.json()
+
+                # Parse RepeaterBook response
+                # The exact format depends on the API version
+                if isinstance(data, dict) and 'results' in data:
+                    results = data['results']
+                elif isinstance(data, list):
+                    results = data
+                else:
+                    results = []
+
+                # Extract repeater information
+                for item in results:
+                    # Parse repeater data from API response
+                    # Field names may vary - adjust based on actual API response
+                    repeater = {
+                        'callsign': item.get('Callsign', item.get('callsign', 'Unknown')),
+                        'frequency': float(item.get('Frequency', item.get('frequency', 0))),
+                        'offset_mhz': float(item.get('Input Freq', item.get('offset', 0))),
+                        'tone': float(item.get('PL', item.get('tone', 88.5)) or 88.5),
+                        'lat': float(item.get('Lat', item.get('latitude', 0))),
+                        'lon': float(item.get('Long', item.get('longitude', 0))),
+                        'location': item.get('Nearest City', item.get('location', 'Unknown')),
+                        'notes': item.get('Notes', item.get('notes', '')),
+                        'antenna_height_m': float(item.get('Antenna Height', item.get('antenna_height', 50)))
+                    }
+
+                    # Calculate offset if not provided directly
+                    if repeater['offset_mhz'] == 0 and repeater['frequency'] > 0:
+                        # Standard offsets
+                        freq = repeater['frequency']
+                        if 144 <= freq < 148:  # 2m
+                            repeater['offset_mhz'] = 0.6
+                        elif 420 <= freq < 450:  # 70cm
+                            repeater['offset_mhz'] = 5.0
+                        elif 219 <= freq < 225:  # 1.25m
+                            repeater['offset_mhz'] = -1.6
+
+                    repeaters.append(repeater)
+
+        except requests.exceptions.Timeout:
+            print(f"RepeaterBook API timeout for band {band}")
+            continue
+        except requests.exceptions.RequestException as e:
+            print(f"RepeaterBook API error for band {band}: {e}")
+            continue
+        except (ValueError, KeyError) as e:
+            print(f"RepeaterBook API parse error for band {band}: {e}")
+            continue
+
+    return repeaters
+
+def generate_chirp_csv(repeaters):
+    """Generate CHIRP-compatible CSV from repeater list"""
+    lines = []
+
+    # CHIRP CSV header
+    lines.append('Location,Name,Frequency,Duplex,Offset,Tone,rToneFreq,cToneFreq,DtcsCode,DtcsPolarity,Mode,TStep,Skip,Comment,URCALL,RPT1CALL,RPT2CALL')
+
+    for i, repeater in enumerate(repeaters, start=1):
+        freq = repeater.get('frequency', 0)
+        offset_mhz = repeater.get('offset_mhz', 0)
+        tone_freq = repeater.get('tone', 88.5)
+        callsign = repeater.get('callsign', 'Unknown')
+        location_name = repeater.get('location', 'Unknown')
+        notes = repeater.get('notes', '')
+        distance_km = repeater.get('distance_km', 0)
+
+        # Determine duplex direction
+        if offset_mhz > 0:
+            duplex = '+'
+        elif offset_mhz < 0:
+            duplex = '-'
+        else:
+            duplex = ''
+
+        # Absolute value of offset
+        offset_abs = abs(offset_mhz)
+
+        # Tone mode (simplified - assumes CTCSS if tone provided)
+        tone_mode = 'Tone' if tone_freq and tone_freq != 88.5 else ''
+
+        # Mode (FM for repeaters)
+        mode = 'FM'
+
+        # Step (standard 5kHz for 2m, 12.5kHz for 70cm in most regions)
+        tstep = '5.00' if freq < 200 else '12.50'
+
+        # Comment with distance and reachability
+        comment = f"{callsign} {location_name} {distance_km:.1f}km"
+        if notes:
+            comment += f" {notes}"
+
+        # Format CSV row
+        row = f'{i},{callsign},{freq:.6f},{duplex},{offset_abs:.6f},{tone_mode},{tone_freq},{tone_freq},023,NN,{mode},{tstep},,{comment},,,'
+        lines.append(row)
+
+    return '\n'.join(lines)
+
 # Add health endpoint
 @bp.route("/health")
 def health():

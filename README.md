@@ -11,6 +11,8 @@ VHF path analysis and terrain profiling tools for amateur radio operators.
 - 🏷️ **Node Aliases** - Built-in support for common packet nodes
 - 💾 **Smart Caching** - Works offline after initial data fetch
 - 🌐 **Web Interface** - User-friendly GUI, no CLI needed
+- 📻 **Repeater Coverage Lookup** - Find reachable repeaters from your location with terrain-based analysis
+- 💾 **CHIRP Export** - Download reachable repeaters as CHIRP-compatible CSV files
 
 ## Live Demo
 
@@ -53,6 +55,67 @@ Enter two locations (callsigns, grid squares, or coordinates) and the tool will:
 - **Coordinates:** `38.6779,-121.1761` → `38.8894,-121.0156`
 
 **Address Geocoding:** Powered by OpenStreetMap (Nominatim). Enter any address, city, or landmark!
+
+## Repeater Coverage Lookup
+
+The repeater coverage feature helps you discover which repeaters are reachable from your location using real terrain analysis:
+
+### Setup
+
+1. **Get a RepeaterBook API Key** (free for non-commercial use):
+   - Visit https://www.repeaterbook.com/
+   - Create a free account
+   - Generate an API key
+
+2. **Configure the API Key**:
+   ```bash
+   export REPEATERBOOK_API_KEY="your-api-key-here"
+   ```
+
+### Usage
+
+1. Enter your location (callsign, address, grid square, or coordinates)
+2. Select your state (2-letter code, e.g., CA, WA)
+3. Set search radius (default: 80km / ~50 miles)
+4. Configure your radio parameters:
+   - TX power (watts)
+   - Antenna height (meters)
+   - Antenna type
+5. Select bands to search (2m, 70cm, etc.)
+6. Click "Find Repeaters"
+
+### Results
+
+The tool will:
+- Query RepeaterBook for nearby repeaters in the selected bands
+- Calculate distance to each repeater
+- Perform terrain analysis for line-of-sight determination
+- Calculate link budget including:
+  - Path loss
+  - Terrain obstruction loss
+  - Received signal strength
+  - Fade margin
+- Classify each repeater as:
+  - ✓ **Clear** - Direct line-of-sight path
+  - ⚠ **Marginal** - Partial Fresnel zone obstruction
+  - ⚠ **Obstructed** - Significant terrain obstruction
+  - ✗ **Blocked** - No viable path
+
+### CHIRP Export
+
+Export reachable repeaters to a CHIRP-compatible CSV file for easy radio programming:
+
+1. Complete a repeater search
+2. Click "Download CHIRP File"
+3. Open the CSV file in CHIRP
+4. Upload to your radio
+
+The exported file includes:
+- Frequency
+- Offset (+ or -)
+- CTCSS tone
+- Callsign and location
+- Distance from your location
 
 ## Built-in Node Aliases
 
