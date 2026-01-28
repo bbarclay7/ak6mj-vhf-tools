@@ -386,9 +386,14 @@
         <header>
             <h1>📡 VHF Path Analysis Tool</h1>
             <p>Analyze VHF radio paths with terrain data and link budget calculations</p>
-            <button onclick="openSettings()" style="position: absolute; top: 20px; right: 20px; padding: 10px 20px; background: rgba(255,255,255,0.2); border: 2px solid white; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                ⚙️ Settings
-            </button>
+            <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px;">
+                <a href="/hf/" style="padding: 10px 20px; background: rgba(255,255,255,0.2); border: 2px solid white; color: white; border-radius: 6px; text-decoration: none; font-weight: 600;">
+                    HF Tools
+                </a>
+                <button onclick="openSettings()" style="padding: 10px 20px; background: rgba(255,255,255,0.2); border: 2px solid white; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    ⚙️ Settings
+                </button>
+            </div>
         </header>
         
         <div class="content">
