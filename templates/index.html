@@ -674,6 +674,26 @@
     </div>
     
     <script>
+        // Wrap fetch to handle Basic Auth for write operations
+        const originalFetch = window.fetch;
+        window.fetch = async function(url, options = {}) {
+            // Add credentials for same-origin requests
+            if (!options.credentials) {
+                options.credentials = 'same-origin';
+            }
+
+            const response = await originalFetch(url, options);
+
+            // Handle 401 - redirect to trigger browser's Basic Auth prompt
+            if (response.status === 401) {
+                alert('Authentication required. You will be prompted to log in.');
+                window.location.href = url;
+                throw new Error('Authentication required');
+            }
+
+            return response;
+        };
+
         // URL prefix for API calls (for reverse proxy support)
         const urlPrefix = '{{ url_prefix }}';
 
