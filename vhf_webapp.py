@@ -19,7 +19,8 @@ Run with: uv run vhf_webapp.py
 Access at: http://localhost:5001 or behind proxy at https://www.shoeph.one/vhf/
 """
 
-from flask import Flask, Blueprint, render_template, request, jsonify, send_file
+from functools import wraps
+from flask import Flask, Blueprint, render_template, request, jsonify, send_file, Response
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import json
@@ -44,6 +45,29 @@ except ImportError:
 # Determine if running behind proxy at /vhf/
 # URL_PREFIX is used on the blueprint so Flask generates correct URLs
 URL_PREFIX = os.getenv('URL_PREFIX', '')
+
+# Basic auth for write operations (override via environment if needed)
+AUTH_USERNAME = os.getenv('VHF_AUTH_USER', 'admin')
+AUTH_PASSWORD = os.getenv('VHF_AUTH_PASS', '73palomar')
+
+
+def requires_auth(f):
+    """Require HTTP Basic Auth for this endpoint (only if AUTH_PASSWORD is set)."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not AUTH_PASSWORD:
+            return f(*args, **kwargs)  # Auth disabled
+
+        auth = request.authorization
+        if not auth or auth.username != AUTH_USERNAME or auth.password != AUTH_PASSWORD:
+            return Response(
+                'Authentication required for this operation.',
+                401,
+                {'WWW-Authenticate': 'Basic realm="VHF Tools"'}
+            )
+        return f(*args, **kwargs)
+    return decorated
+
 
 app = Flask(__name__)
 
@@ -793,6 +817,7 @@ def get_antennas():
     return jsonify(antennas)
 
 @bp.route('/api/antennas', methods=['POST'])
+@requires_auth
 def add_antenna():
     """Add or update antenna"""
     try:
@@ -816,6 +841,7 @@ def add_antenna():
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/api/antennas/<key>', methods=['DELETE'])
+@requires_auth
 def delete_antenna(key):
     """Delete antenna"""
     try:
@@ -844,6 +870,7 @@ def get_custom_locations():
     return jsonify(custom_locs)
 
 @bp.route('/api/custom-locations', methods=['POST'])
+@requires_auth
 def add_custom_location():
     """Add or update custom location"""
     try:
@@ -876,6 +903,7 @@ def add_custom_location():
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/api/custom-locations/<alias>', methods=['DELETE'])
+@requires_auth
 def delete_custom_location(alias):
     """Delete custom location"""
     try:
@@ -972,6 +1000,7 @@ def get_settings():
     return jsonify(settings)
 
 @bp.route('/api/settings', methods=['POST'])
+@requires_auth
 def update_settings():
     """Update user settings"""
     try:
@@ -982,6 +1011,7 @@ def update_settings():
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/api/nodes', methods=['POST'])
+@requires_auth
 def add_node():
     """Add custom node alias"""
     try:
@@ -1009,6 +1039,7 @@ def add_node():
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/api/nodes/<alias>', methods=['DELETE'])
+@requires_auth
 def delete_node(alias):
     """Delete custom node alias"""
     try:
