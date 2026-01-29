@@ -483,31 +483,34 @@ def generate_elevation_plot(tx_info, rx_info, tx_height_m, rx_height_m, freq_mhz
                 fresnel = 0.6 * math.sqrt((wavelength_m * d1 * d2 * 1000) / (d1 + d2))
                 fresnel_radii.append(fresnel)
         
-        # Check clearance - only flag if terrain is above LOS or penetrates upper Fresnel
-        # For ground-based VHF, lower Fresnel zone obstruction is normal/acceptable
+        # Check clearance - evaluate obstruction relative to Fresnel zone
+        # VHF can knife-edge diffract, so minor LOS obstruction isn't fatal
         clearances = np.array(los_profile) - np.array(elevations_corrected)
         min_clearance = np.min(clearances)
         worst_idx = np.argmin(clearances)
-        
-        # Calculate what percentage of Fresnel zone (from LOS upward) is obstructed
+
         fresnel_array = np.array(fresnel_radii)
-        max_fresnel = max(fresnel_radii)
-        
-        if min_clearance < 0:
-            # Terrain above LOS - serious problem
-            is_clear = False
-            obstruction_severity = 100  # Treat as 100% obstructed
-        elif min_clearance < fresnel_array[worst_idx]:
-            # Terrain below LOS but within upper Fresnel zone
-            # Calculate what fraction of upper Fresnel (LOS to top) is obstructed
-            fresnel_at_worst = fresnel_array[worst_idx]
-            upper_fresnel_penetration = (fresnel_at_worst - min_clearance) / fresnel_at_worst
-            obstruction_severity = upper_fresnel_penetration * 100
-            is_clear = obstruction_severity < 50  # Accept up to 50% upper Fresnel penetration
-        else:
-            # Clear - terrain well below LOS
+        fresnel_at_worst = fresnel_array[worst_idx] if worst_idx < len(fresnel_array) else 10
+
+        if min_clearance >= fresnel_at_worst:
+            # Full Fresnel clearance - excellent
             is_clear = True
             obstruction_severity = 0
+        elif min_clearance >= 0:
+            # LOS clear but Fresnel partially obstructed - normal for ground VHF
+            upper_fresnel_penetration = (fresnel_at_worst - min_clearance) / fresnel_at_worst
+            obstruction_severity = upper_fresnel_penetration * 50  # Max 50% if LOS clear
+            is_clear = True
+        elif min_clearance > -fresnel_at_worst * 0.6:
+            # Terrain slightly above LOS but within 60% Fresnel - knife-edge diffraction likely
+            # Scale from 50% (at LOS) to 90% (at -0.6 Fresnel)
+            penetration_ratio = abs(min_clearance) / (fresnel_at_worst * 0.6)
+            obstruction_severity = 50 + penetration_ratio * 40
+            is_clear = obstruction_severity < 70  # Marginal but may work
+        else:
+            # Severe obstruction - terrain well above LOS
+            is_clear = False
+            obstruction_severity = 90 + min(10, abs(min_clearance) / fresnel_at_worst * 10)
         
         # Calculate aspect ratio for overhead map to determine figure dimensions
         lat_range = abs(rx_lat - tx_lat) * 1.2  # Add margin
@@ -570,25 +573,28 @@ def generate_elevation_plot(tx_info, rx_info, tx_height_m, rx_height_m, freq_mhz
         ax1.grid(True, alpha=0.3)
         
         # Status box - graduated based on obstruction severity
-        if min_clearance < 0:
-            # Terrain above line of sight - serious problem
-            status = f"✗ BLOCKED\nTerrain {abs(min_clearance) * elev_factor:.0f}{elev_unit} above LOS"
-            color = 'red'
-        elif is_clear and obstruction_severity < 25:
-            # Clear path with good margin
+        if obstruction_severity < 20:
+            # Excellent clearance
             status = f"✓ CLEAR\n{min_clearance * elev_factor:.0f}{elev_unit} clearance"
             color = 'green'
-        elif is_clear:
-            # Clear but close to upper Fresnel
-            status = f"⚠ MARGINAL\n{obstruction_severity:.0f}% upper Fresnel"
-            color = 'yellow'
-        elif obstruction_severity < 75:
-            # Moderate obstruction into upper Fresnel
-            status = f"⚠ OBSTRUCTED\n{obstruction_severity:.0f}% upper Fresnel"
+        elif obstruction_severity < 50:
+            # LOS clear, some Fresnel obstruction - typical for ground VHF
+            status = f"✓ GOOD\n{min_clearance * elev_factor:.0f}{elev_unit} clearance"
+            color = 'green'
+        elif obstruction_severity < 70:
+            # Minor LOS obstruction or significant Fresnel - marginal but workable
+            if min_clearance < 0:
+                status = f"⚠ MARGINAL\n{abs(min_clearance) * elev_factor:.0f}{elev_unit} over LOS"
+            else:
+                status = f"⚠ MARGINAL\nFresnel obstructed"
+            color = 'orange'
+        elif obstruction_severity < 90:
+            # Significant obstruction - may work with diffraction
+            status = f"⚠ OBSTRUCTED\n{abs(min_clearance) * elev_factor:.0f}{elev_unit} over LOS"
             color = 'orange'
         else:
-            # Severe obstruction
-            status = f"✗ BLOCKED\n{obstruction_severity:.0f}% upper Fresnel"
+            # Severe obstruction - unlikely to work
+            status = f"✗ BLOCKED\n{abs(min_clearance) * elev_factor:.0f}{elev_unit} over LOS"
             color = 'red'
         
         ax1.text(0.5, 0.02, status, transform=ax1.transAxes, fontsize=10,
