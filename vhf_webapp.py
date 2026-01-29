@@ -113,22 +113,22 @@ NODE_ALIASES = {
               'lat': 48.0356948, 'lon': -122.5419147, 'elevation': None},  # Whidbey Island
 }
 
-# Default antenna definitions - gain values in dBi
+# Default antenna definitions - gain values in dBi, typical heights in meters
 # Sources: W8JI measurements, Diamond mfr specs, ARRL Antenna Book
 DEFAULT_ANTENNAS = {
-    'rubber_ducky': {'name': 'Rubber Ducky (HT)', 'gain_dbi': -1.0},
-    'signal_stick': {'name': 'SignalStuff Signal Stick', 'gain_dbi': 2.0},
-    'dipole': {'name': 'Dipole', 'gain_dbi': 2.15},
-    'groundplane': {'name': 'Ground Plane (1/4 wave)', 'gain_dbi': 1.5},
-    'j_pole': {'name': 'J-Pole', 'gain_dbi': 2.5},
-    'slim_jim': {'name': 'Slim Jim', 'gain_dbi': 2.5},  # Same as J-Pole per W8JI
-    'moxon': {'name': 'Moxon', 'gain_dbi': 6.0},
-    'diamond_x50': {'name': 'Diamond X50', 'gain_dbi': 4.5},   # Mfr spec @ 2m
-    'diamond_x200': {'name': 'Diamond X200', 'gain_dbi': 6.0},  # Mfr spec @ 2m
-    'diamond_x300': {'name': 'Diamond X300', 'gain_dbi': 6.5},  # Mfr spec @ 2m
-    'yagi_3el': {'name': '3-element Yagi', 'gain_dbi': 7.0},
-    'yagi_5el': {'name': '5-element Yagi', 'gain_dbi': 9.5},
-    'yagi_7el': {'name': '7-element Yagi', 'gain_dbi': 11.5},
+    'rubber_ducky': {'name': 'Rubber Ducky (HT)', 'gain_dbi': -1.0, 'default_height': 1.5},
+    'signal_stick': {'name': 'SignalStuff Signal Stick', 'gain_dbi': 2.0, 'default_height': 1.5},
+    'dipole': {'name': 'Dipole', 'gain_dbi': 2.15, 'default_height': 5.0},
+    'groundplane': {'name': 'Ground Plane (1/4 wave)', 'gain_dbi': 1.5, 'default_height': 5.0},
+    'j_pole': {'name': 'J-Pole', 'gain_dbi': 2.5, 'default_height': 5.0},
+    'slim_jim': {'name': 'Slim Jim', 'gain_dbi': 2.5, 'default_height': 5.0},
+    'moxon': {'name': 'Moxon', 'gain_dbi': 6.0, 'default_height': 8.0},
+    'diamond_x50': {'name': 'Diamond X50', 'gain_dbi': 4.5, 'default_height': 8.0},
+    'diamond_x200': {'name': 'Diamond X200', 'gain_dbi': 6.0, 'default_height': 10.0},
+    'diamond_x300': {'name': 'Diamond X300', 'gain_dbi': 6.5, 'default_height': 10.0},
+    'yagi_3el': {'name': '3-element Yagi', 'gain_dbi': 7.0, 'default_height': 10.0},
+    'yagi_5el': {'name': '5-element Yagi', 'gain_dbi': 9.5, 'default_height': 12.0},
+    'yagi_7el': {'name': '7-element Yagi', 'gain_dbi': 11.5, 'default_height': 15.0},
 }
 
 def load_antennas():

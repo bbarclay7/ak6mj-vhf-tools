@@ -463,17 +463,17 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="tx_antenna">TX Antenna Type</label>
-                            <select id="tx_antenna" name="tx_antenna">
+                            <select id="tx_antenna" name="tx_antenna" onchange="updateHeight('tx')">
                                 {% for key, antenna in antennas.items() %}
-                                <option value="{{ key }}">{{ antenna.name }} ({{ antenna.gain_dbi }} dBi)</option>
+                                <option value="{{ key }}" data-height="{{ antenna.default_height or 5.0 }}">{{ antenna.name }} ({{ antenna.gain_dbi }} dBi)</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="form-group">
                             <label for="rx_antenna">RX Antenna Type</label>
-                            <select id="rx_antenna" name="rx_antenna">
+                            <select id="rx_antenna" name="rx_antenna" onchange="updateHeight('rx')">
                                 {% for key, antenna in antennas.items() %}
-                                <option value="{{ key }}">{{ antenna.name }} ({{ antenna.gain_dbi }} dBi)</option>
+                                <option value="{{ key }}" data-height="{{ antenna.default_height or 5.0 }}">{{ antenna.name }} ({{ antenna.gain_dbi }} dBi)</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -701,6 +701,17 @@
 
         // URL prefix for API calls (for reverse proxy support)
         const urlPrefix = '{{ url_prefix }}';
+
+        // Update height field when antenna type changes
+        function updateHeight(prefix) {
+            const select = document.getElementById(prefix + '_antenna');
+            const heightField = document.getElementById(prefix + '_height');
+            const selectedOption = select.options[select.selectedIndex];
+            const defaultHeight = selectedOption.getAttribute('data-height');
+            if (defaultHeight) {
+                heightField.value = defaultHeight;
+            }
+        }
 
         // Update GitHub status on settings open
         function updateGitHubStatus() {
