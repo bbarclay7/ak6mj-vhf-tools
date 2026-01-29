@@ -597,15 +597,35 @@ def generate_elevation_plot(tx_info, rx_info, tx_height_m, rx_height_m, freq_mhz
                color='white')
         
         # === OVERHEAD TERRAIN MAP ===
-        # Calculate terrain grid with simple margin
-        margin = 0.1
+        # Calculate terrain grid - always square with margin
+        margin = 0.15
         lat_range = abs(rx_lat - tx_lat)
         lon_range = abs(rx_lon - tx_lon)
-        
-        map_lat_min = min(tx_lat, rx_lat) - lat_range * margin
-        map_lat_max = max(tx_lat, rx_lat) + lat_range * margin
-        map_lon_min = min(tx_lon, rx_lon) - lon_range * margin
-        map_lon_max = max(tx_lon, rx_lon) + lon_range * margin
+
+        # Make square by expanding the smaller dimension
+        # Account for longitude compression at latitude
+        mid_lat = (tx_lat + rx_lat) / 2
+        lon_scale = math.cos(math.radians(mid_lat))  # ~0.75 at 40°N
+
+        # Convert to approximate equal distances
+        lat_dist = lat_range
+        lon_dist = lon_range * lon_scale
+
+        # Use the larger dimension, add margin, then expand the smaller
+        max_range = max(lat_dist, lon_dist) * (1 + 2 * margin)
+        if max_range < 0.01:  # Minimum size for very close points
+            max_range = 0.05
+
+        # Center points
+        center_lat = (tx_lat + rx_lat) / 2
+        center_lon = (tx_lon + rx_lon) / 2
+
+        # Calculate bounds as square (in distance terms)
+        half_range = max_range / 2
+        map_lat_min = center_lat - half_range
+        map_lat_max = center_lat + half_range
+        map_lon_min = center_lon - half_range / lon_scale
+        map_lon_max = center_lon + half_range / lon_scale
         
         grid_points = 25
         grid_lats = np.linspace(map_lat_min, map_lat_max, grid_points)
