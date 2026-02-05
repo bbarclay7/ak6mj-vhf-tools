@@ -76,7 +76,7 @@ Hosted at www.shoeph.one using:
 
 ## Credits
 
-**Created by:** Brandon Brown, AK6MJ
+**Created by:** Brandon Barclay, AK6MJ
 **Data Sources:** NASA SRTM, FCC ULS Database
 **Purpose:** Amateur radio VHF path planning and troubleshooting
 
