@@ -124,20 +124,43 @@ def save_antennas(antennas):
 
 def load_settings():
     """Load combined settings for API compatibility"""
+    # Load saved settings from file
+    saved_settings = {}
+    if SETTINGS_FILE.exists():
+        try:
+            with open(SETTINGS_FILE, 'r') as f:
+                saved_settings = json.load(f)
+        except:
+            pass
+
     return {
-        'node_aliases': NODE_ALIASES.copy(),
-        'antennas': load_antennas()
+        'node_aliases': saved_settings.get('node_aliases', NODE_ALIASES.copy()),
+        'antennas': load_antennas(),
+        'repeaterbook': saved_settings.get('repeaterbook', {})
     }
 
 def save_settings(settings):
     """Save settings - splits into separate files"""
     if 'antennas' in settings:
         save_antennas(settings['antennas'])
-    # Node aliases are now in settings file for backwards compat
+
+    # Save node aliases and repeaterbook config to settings file
+    settings_data = {}
     if 'node_aliases' in settings:
+        settings_data['node_aliases'] = settings['node_aliases']
+    if 'repeaterbook' in settings:
+        settings_data['repeaterbook'] = settings['repeaterbook']
+
+    if settings_data:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         with open(SETTINGS_FILE, 'w') as f:
-            json.dump({'node_aliases': settings['node_aliases']}, f, indent=2)
+            json.dump(settings_data, f, indent=2)
+
+        # Set secure permissions (user read/write only) for API tokens
+        try:
+            os.chmod(SETTINGS_FILE, 0o600)  # -rw-------
+        except Exception as e:
+            print(f"Warning: Could not set secure permissions on {SETTINGS_FILE}: {e}")
 
 def load_cache():
     """Load location cache"""
@@ -1188,19 +1211,21 @@ def query_repeaterbook(state, bands):
 
     Based on working implementation: https://github.com/mycodeplug/dzcb
     """
-    # Get API token and User-Agent from environment
-    api_token = os.getenv('REPEATERBOOK_API_TOKEN', '')
-    user_agent = os.getenv('REPEATERBOOK_USER_AGENT', '')
+    # Get API token and User-Agent from settings first, then environment variables
+    settings = load_settings()
+    rb_config = settings.get('repeaterbook', {})
 
-    # Fallback to old email/key env vars for backward compatibility
+    api_token = rb_config.get('api_token', '') or os.getenv('REPEATERBOOK_API_TOKEN', '')
+    user_agent = rb_config.get('user_agent', '') or os.getenv('REPEATERBOOK_USER_AGENT', '')
+
+    # Fallback to old env vars for backward compatibility
     if not api_token:
         api_token = os.getenv('REPEATERBOOK_API_KEY', '')
 
     if not api_token or not user_agent:
         # Return empty list if not configured
         print("RepeaterBook API requires token and User-Agent.")
-        print("Set REPEATERBOOK_API_TOKEN and REPEATERBOOK_USER_AGENT environment variables.")
-        print("Example:")
+        print("Configure in Settings UI or set environment variables:")
         print("  export REPEATERBOOK_API_TOKEN='app_...'")
         print("  export REPEATERBOOK_USER_AGENT='YourCall/app_name'")
         return []

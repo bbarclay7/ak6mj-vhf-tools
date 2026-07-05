@@ -70,28 +70,27 @@ The repeater coverage feature helps you discover which repeaters are reachable f
    - Request an API token for personal use
    - You'll receive an email with your token and approved User-Agent
 
-2. **Configure Environment Variables:**
+2. **Configure via Web UI (Recommended):**
+   - Start the app: `uv run vhf_webapp.py`
+   - Navigate to http://localhost:5001
+   - Click the **⚙️ Settings** button (top right)
+   - Scroll to **📡 RepeaterBook API** section
+   - Paste your **API Token** (from approval email)
+   - Paste your **User-Agent** (must match approval exactly)
+   - Click **💾 Save Configuration**
 
-Once approved, you'll receive:
-- **API Token**: `app_...`
-- **Approved User-Agent**: e.g., `AK6MJ/create_chirp_csv`
+Your token is saved securely in `~/.cache/vhf-tools/settings.json` with user-only permissions.
 
-Set these as environment variables:
+**Alternative: Environment Variables**
+
+You can also use environment variables (useful for deployment):
 
 ```bash
-export REPEATERBOOK_API_TOKEN="app_2aaa06e1d0e275f0841a7bcb50fba3a7d8432cc22fe7ff6939a6713c3d8f0031"
+export REPEATERBOOK_API_TOKEN="app_2aaa..."
 export REPEATERBOOK_USER_AGENT="AK6MJ/create_chirp_csv"
 ```
 
-**Important:** Use the EXACT User-Agent string from your approval email.
-
-**Add to your shell profile** to make permanent:
-```bash
-# Add to ~/.bashrc or ~/.zshrc
-echo 'export REPEATERBOOK_API_TOKEN="app_..."' >> ~/.bashrc
-echo 'export REPEATERBOOK_USER_AGENT="YourCall/app_name"' >> ~/.bashrc
-source ~/.bashrc
-```
+The app checks settings file first, then falls back to environment variables.
 
 ### Usage
 

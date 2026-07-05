@@ -581,7 +581,7 @@
                     </div>
 
                     <div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin: 15px 0;">
-                        <strong>⚠️ Setup Required:</strong> Set REPEATERBOOK_API_TOKEN and REPEATERBOOK_USER_AGENT environment variables.
+                        <strong>⚠️ Setup Required:</strong> Configure RepeaterBook API in Settings (⚙️ button above).
                         <a href="https://www.repeaterbook.com/user/api_apps.php" target="_blank" style="color: #667eea;">Request API Access →</a>
                     </div>
 
@@ -793,7 +793,43 @@
                     </button>
                 </div>
             </div>
-            
+
+            <div class="form-section" style="margin-top: 20px;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">📡 RepeaterBook API</h3>
+                <p style="color: #666; margin-bottom: 15px;">Configure RepeaterBook API access for repeater coverage lookup</p>
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <p style="margin-bottom: 15px;"><strong>Status:</strong> <span id="repeaterbookStatus">Not configured</span></p>
+                    <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">
+                        Request API access at RepeaterBook. You'll receive an API token and approved User-Agent.
+                        <a href="https://www.repeaterbook.com/user/api_apps.php" target="_blank" style="color: #667eea;">Request access →</a>
+                    </p>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">API Token:</label>
+                        <input type="text" id="repeaterbookToken" placeholder="app_..."
+                               style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-family: monospace; font-size: 0.9em;">
+                        <small style="color: #666; display: block; margin-top: 5px;">From your RepeaterBook approval email</small>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">User-Agent:</label>
+                        <input type="text" id="repeaterbookUserAgent" placeholder="YourCall/app_name"
+                               style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-family: monospace; font-size: 0.9em;">
+                        <small style="color: #666; display: block; margin-top: 5px;">Must match approved User-Agent exactly</small>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="saveRepeaterbookConfig()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; flex: 1;">
+                            💾 Save Configuration
+                        </button>
+                        <button onclick="clearRepeaterbookConfig()" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                            🗑️ Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="form-section" style="margin-top: 20px;">
                 <h3 style="color: #667eea; margin-bottom: 15px;">🔐 GitHub Integration</h3>
                 <p style="color: #666; margin-bottom: 15px;">Manage GitHub authentication for sharing reports as Gists</p>
@@ -936,6 +972,7 @@
             document.getElementById('settingsModal').style.display = 'block';
             loadSettings();
             updateGitHubStatus();
+            updateRepeaterbookStatus();
         }
         
         function closeSettings() {
@@ -1010,9 +1047,79 @@
                     `;
                     antennasList.appendChild(antennaDiv);
                 }
+
+                // Load RepeaterBook configuration
+                const rbConfig = settings.repeaterbook || {};
+                document.getElementById('repeaterbookToken').value = rbConfig.api_token || '';
+                document.getElementById('repeaterbookUserAgent').value = rbConfig.user_agent || '';
+                updateRepeaterbookStatus();
+
             } catch (error) {
                 console.error('Error loading settings:', error);
             }
+        }
+
+        // RepeaterBook configuration functions
+        function updateRepeaterbookStatus() {
+            const token = document.getElementById('repeaterbookToken').value;
+            const userAgent = document.getElementById('repeaterbookUserAgent').value;
+            const status = document.getElementById('repeaterbookStatus');
+
+            if (token && userAgent) {
+                status.textContent = '✓ Configured';
+                status.style.color = 'green';
+            } else {
+                status.textContent = 'Not configured';
+                status.style.color = '#666';
+            }
+        }
+
+        async function saveRepeaterbookConfig() {
+            const token = document.getElementById('repeaterbookToken').value.trim();
+            const userAgent = document.getElementById('repeaterbookUserAgent').value.trim();
+
+            if (!token || !userAgent) {
+                alert('Please enter both API token and User-Agent');
+                return;
+            }
+
+            try {
+                // Get current settings
+                const response = await fetch(`${urlPrefix}/api/settings`);
+                const settings = await response.json();
+
+                // Update RepeaterBook config
+                settings.repeaterbook = {
+                    api_token: token,
+                    user_agent: userAgent
+                };
+
+                // Save settings
+                const saveResponse = await fetch(`${urlPrefix}/api/settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+
+                if (saveResponse.ok) {
+                    alert('RepeaterBook configuration saved successfully!');
+                    updateRepeaterbookStatus();
+                } else {
+                    alert('Failed to save RepeaterBook configuration');
+                }
+            } catch (error) {
+                alert('Error saving RepeaterBook configuration: ' + error.message);
+            }
+        }
+
+        function clearRepeaterbookConfig() {
+            if (!confirm('Clear RepeaterBook API configuration?')) {
+                return;
+            }
+
+            document.getElementById('repeaterbookToken').value = '';
+            document.getElementById('repeaterbookUserAgent').value = '';
+            saveRepeaterbookConfig();
         }
         
         function useCurrentLocationForSave() {
