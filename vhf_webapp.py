@@ -1188,13 +1188,21 @@ def query_repeaterbook(state, bands):
 
     Based on working implementation: https://github.com/mycodeplug/dzcb
     """
-    # Get email for API identification (eventually will require API key)
-    contact_email = os.getenv('REPEATERBOOK_EMAIL', os.getenv('REPEATERBOOK_API_KEY', ''))
+    # Get API token and User-Agent from environment
+    api_token = os.getenv('REPEATERBOOK_API_TOKEN', '')
+    user_agent = os.getenv('REPEATERBOOK_USER_AGENT', '')
 
-    if not contact_email:
-        # Return empty list if no contact configured
-        # Users can still use the app without RepeaterBook integration
-        print("RepeaterBook API requires email/API key. Set REPEATERBOOK_EMAIL or REPEATERBOOK_API_KEY environment variable.")
+    # Fallback to old email/key env vars for backward compatibility
+    if not api_token:
+        api_token = os.getenv('REPEATERBOOK_API_KEY', '')
+
+    if not api_token or not user_agent:
+        # Return empty list if not configured
+        print("RepeaterBook API requires token and User-Agent.")
+        print("Set REPEATERBOOK_API_TOKEN and REPEATERBOOK_USER_AGENT environment variables.")
+        print("Example:")
+        print("  export REPEATERBOOK_API_TOKEN='app_...'")
+        print("  export REPEATERBOOK_USER_AGENT='YourCall/app_name'")
         return []
 
     if not state:
@@ -1240,7 +1248,8 @@ def query_repeaterbook(state, bands):
         }
 
         headers = {
-            'User-Agent': f'VHF-Tools/1.0 (Personal Use, {contact_email})',
+            'User-Agent': user_agent,  # Must match approved User-Agent exactly
+            'X-RB-App-Token': api_token,  # Canonical RepeaterBook token header
         }
 
         print(f"Querying RepeaterBook for {state_name}...")

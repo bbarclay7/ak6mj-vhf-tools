@@ -64,21 +64,34 @@ The repeater coverage feature helps you discover which repeaters are reachable f
 
 **RepeaterBook API Access** (free for non-commercial use):
 
-The RepeaterBook API requires contact information for identification. You can provide this in two ways:
+1. **Request API Access:**
+   - Visit [RepeaterBook API Apps](https://www.repeaterbook.com/user/api_apps.php)
+   - Register at [RepeaterBook Registration](https://www.repeaterbook.com/register) if needed
+   - Request an API token for personal use
+   - You'll receive an email with your token and approved User-Agent
 
-**Option 1: Email (Recommended for personal use)**
+2. **Configure Environment Variables:**
+
+Once approved, you'll receive:
+- **API Token**: `app_...`
+- **Approved User-Agent**: e.g., `AK6MJ/create_chirp_csv`
+
+Set these as environment variables:
+
 ```bash
-export REPEATERBOOK_EMAIL="your-email@example.com"
+export REPEATERBOOK_API_TOKEN="app_2aaa06e1d0e275f0841a7bcb50fba3a7d8432cc22fe7ff6939a6713c3d8f0031"
+export REPEATERBOOK_USER_AGENT="AK6MJ/create_chirp_csv"
 ```
 
-**Option 2: API Key (For registered API users)**
-```bash
-export REPEATERBOOK_API_KEY="your-api-key-here"
-```
+**Important:** Use the EXACT User-Agent string from your approval email.
 
-- Visit [RepeaterBook](https://www.repeaterbook.com/) to learn more about API access
-- Register at [RepeaterBook Registration](https://www.repeaterbook.com/register) if needed
-- See [API Documentation](https://www.repeaterbook.com/wiki/doku.php?id=api/) for details
+**Add to your shell profile** to make permanent:
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+echo 'export REPEATERBOOK_API_TOKEN="app_..."' >> ~/.bashrc
+echo 'export REPEATERBOOK_USER_AGENT="YourCall/app_name"' >> ~/.bashrc
+source ~/.bashrc
+```
 
 ### Usage
 
